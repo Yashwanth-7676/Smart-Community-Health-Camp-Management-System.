@@ -1,0 +1,299 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  VOLUNTEER
+  PATIENT
+}
+
+enum CampStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+enum FollowUpStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  COMPLETED
+  SKIPPED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(PATIENT)
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  patientProfile    PatientProfile?
+  doctorProfile     DoctorProfile?
+  volunteerProfile  VolunteerProfile?
+  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
+  medicalReportsAsPatient MedicalReport[] @relation("PatientReports")
+  medicalReportsAsDoctor  MedicalReport[] @relation("DoctorReports")
+  notifications     Notification[]
+  followUpsAsPatient FollowUp[] @relation("PatientFollowUps")
+  followUpsAsDoctor  FollowUp[] @relation("DoctorFollowUps")
+  createdCamps      Camp[]
+
+  @@map("users")
+}
+
+model Camp {
+  id          String     @id @default(cuid())
+  name        String
+  location    String
+  address     String
+  latitude    Float?
+  longitude   Float?
+  startDate   DateTime
+  endDate     DateTime
+  capacity    Int
+  registered  Int        @default(0)
+  status      CampStatus @default(UPCOMING)
+  services    String[]
+  description String?
+  createdById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  createdBy       User               @relation(fields: [createdById], references: [id])
+  appointments    Appointment[]
+  inventory       Inventory[]
+  medicalReports  MedicalReport[]
+  followUps       FollowUp[]
+  doctorProfiles  DoctorProfile[]    @relation("DoctorCamps")
+  volunteerProfiles VolunteerProfile[] @relation("VolunteerCamp")
+
+  @@map("camps")
+}
+
+model Appointment {
+  id         String            @id @default(cuid())
+  patientId  String
+  campId     String
+  doctorId   String?
+  date       DateTime
+  timeSlot   String
+  status     AppointmentStatus @default(PENDING)
+  queueToken String?
+  notes      String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  // Relations
+  patient    User        @relation("PatientAppointments", fields: [patientId], references: [id])
+  camp       Camp        @relation(fields: [campId], references: [id])
+  doctor     User?       @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  queueTokenRef QueueToken?
+
+  @@unique([patientId, campId, date])
+  @@map("appointments")
+}
+
+model PatientProfile {
+  id               String      @id @default(cuid())
+  userId           String      @unique
+  dateOfBirth      DateTime?
+  gender           Gender?
+  bloodGroup       BloodGroup?
+  address          String?
+  medicalHistory   String?
+  allergies        String[]
+  emergencyContact Json?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("patient_profiles")
+}
+
+model DoctorProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  specialization String
+  licenseNumber  String   @unique
+  experience     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCamps Camp[] @relation("DoctorCamps")
+
+  @@map("doctor_profiles")
+}
+
+model VolunteerProfile {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  skills         String[]
+  assignedCampId String?
+  attendance     Json[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCamp Camp? @relation("VolunteerCamp", fields: [assignedCampId], references: [id])
+
+  @@map("volunteer_profiles")
+}
+
+model MedicalReport {
+  id             String   @id @default(cuid())
+  patientId      String
+  doctorId       String
+  campId         String
+  diagnosis      String
+  prescription   String?
+  observations   String?
+  referral       String?
+  isConfidential Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  patient User @relation("PatientReports", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorReports", fields: [doctorId], references: [id])
+  camp    Camp @relation(fields: [campId], references: [id])
+
+  @@map("medical_reports")
+}
+
+model Inventory {
+  id                String    @id @default(cuid())
+  campId            String
+  medicineName      String
+  genericName       String?
+  quantity          Int
+  unit              String
+  expiryDate        DateTime?
+  lowStockThreshold Int       @default(10)
+  supplier          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  camp Camp @relation(fields: [campId], references: [id])
+
+  @@map("inventory")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model FollowUp {
+  id            String         @id @default(cuid())
+  patientId     String
+  doctorId      String
+  campId        String
+  scheduledDate DateTime
+  status        FollowUpStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  patient User @relation("PatientFollowUps", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorFollowUps", fields: [doctorId], references: [id])
+  camp    Camp @relation(fields: [campId], references: [id])
+
+  @@map("follow_ups")
+}
+
+model QueueToken {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  tokenNumber   Int
+  status        QueueStatus @default(WAITING)
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@map("queue_tokens")
+}
+
+model OfflineRegistration {
+  id        String    @id @default(cuid())
+  data      Json
+  synced    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  syncedAt  DateTime?
+
+  @@map("offline_registrations")
+}
