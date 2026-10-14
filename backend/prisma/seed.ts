@@ -7,6 +7,15 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // Clean existing data
+  await prisma.vitalSign.deleteMany();
+  await prisma.referral.deleteMany();
+  await prisma.consentRecord.deleteMany();
+  await prisma.auditLog.deleteMany();
+  await prisma.inventoryTransaction.deleteMany();
+  await prisma.medicineBatch.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.campService.deleteMany();
+  await prisma.staffAssignment.deleteMany();
   await prisma.queueToken.deleteMany();
   await prisma.offlineRegistration.deleteMany();
   await prisma.followUp.deleteMany();
@@ -604,7 +613,7 @@ async function main() {
   // CREATE MEDICAL REPORTS
   // ========================
 
-  await prisma.medicalReport.create({
+  const report1 = await prisma.medicalReport.create({
     data: {
       patientId: patient2.id,
       doctorId: doctor1.id,
@@ -617,7 +626,7 @@ async function main() {
     },
   });
 
-  await prisma.medicalReport.create({
+  const report2 = await prisma.medicalReport.create({
     data: {
       patientId: patient3.id,
       doctorId: doctor3.id,
@@ -952,6 +961,151 @@ async function main() {
   });
 
   console.log('✅ Offline registrations created');
+
+  // ========================
+  // CREATE CAMP SERVICES
+  // ========================
+  await prisma.campService.createMany({
+    data: [
+      { campId: camp1.id, serviceName: 'General Consultation', description: 'Primary health checkup by general physician', maxCapacity: 100, currentCount: 45 },
+      { campId: camp1.id, serviceName: 'Blood Pressure & Diabetes', description: 'Screening for hypertension and diabetes', maxCapacity: 80, currentCount: 40 },
+      { campId: camp1.id, serviceName: 'Eye Screening', description: 'Vision check and cataract screening', maxCapacity: 50, currentCount: 30 },
+      { campId: camp2.id, serviceName: 'Maternal & Child Health', description: 'Gynecologist and pediatrician consultations', maxCapacity: 60, currentCount: 50 },
+      { campId: camp2.id, serviceName: 'Nutrition Counseling', description: 'Dietary guidance for anemia and lifestyle diseases', maxCapacity: 40, currentCount: 25 },
+    ],
+  });
+  console.log('✅ Camp services created');
+
+  // ========================
+  // CREATE STAFF ASSIGNMENTS
+  // ========================
+  await prisma.staffAssignment.createMany({
+    data: [
+      { userId: doctor1.id, campId: camp1.id, role: 'Lead Physician', notes: 'Lead medical officer for camp 1' },
+      { userId: volunteer1.id, campId: camp1.id, role: 'Queue Manager', notes: 'Manages reception and token calls' },
+      { userId: doctor2.id, campId: camp3.id, role: 'Cardiology Specialist', notes: 'Cardiac consultations' },
+      { userId: volunteer2.id, campId: camp2.id, role: 'Registration Assistant', notes: 'Patient check-in' },
+    ],
+  });
+  console.log('✅ Staff assignments created');
+
+  // ========================
+  // CREATE VITAL SIGNS
+  // ========================
+  await prisma.vitalSign.createMany({
+    data: [
+      {
+        reportId: report1.id,
+        bloodPressureSystolic: 145,
+        bloodPressureDiastolic: 92,
+        heartRate: 78,
+        temperature: 98.4,
+        weight: 68.5,
+        height: 165.0,
+        bloodSugar: 135.0,
+        oxygenSaturation: 98.0,
+        notes: 'Stage 1 hypertension noted; advised dietary sodium restriction.',
+      },
+      {
+        reportId: report2.id,
+        bloodPressureSystolic: 118,
+        bloodPressureDiastolic: 76,
+        heartRate: 72,
+        temperature: 98.2,
+        weight: 62.0,
+        height: 158.0,
+        bloodSugar: 110.0,
+        oxygenSaturation: 99.0,
+        notes: 'Vitals stable; metabolic profile indicated.',
+      },
+    ],
+  });
+  console.log('✅ Vital signs created');
+
+  // ========================
+  // CREATE REFERRALS
+  // ========================
+  await prisma.referral.create({
+    data: {
+      patientId: patient3.id,
+      doctorId: doctor3.id,
+      campId: camp2.id,
+      reportId: report2.id,
+      hospitalName: 'Victoria Hospital, Bangalore',
+      department: 'Endocrinology',
+      reason: 'Specialized hormone evaluation and pelvic ultrasonography for PCOS',
+      urgency: 'ROUTINE',
+      status: 'PENDING',
+      notes: 'Referred for comprehensive workup and long-term care management.',
+    },
+  });
+  console.log('✅ Referrals created');
+
+  // ========================
+  // CREATE CONSENT RECORDS
+  // ========================
+  await prisma.consentRecord.createMany({
+    data: [
+      {
+        userId: patient1.id,
+        consentType: 'TREATMENT',
+        granted: true,
+        grantedAt: new Date('2024-01-20T10:00:00Z'),
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: patient1.id,
+        consentType: 'DATA_SHARING',
+        granted: true,
+        grantedAt: new Date('2024-01-20T10:00:00Z'),
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: patient2.id,
+        consentType: 'TREATMENT',
+        granted: true,
+        grantedAt: new Date('2024-01-22T09:30:00Z'),
+        ipAddress: '127.0.0.1',
+      },
+    ],
+  });
+  console.log('✅ Consent records created');
+
+  // ========================
+  // CREATE AUDIT LOGS
+  // ========================
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        userId: admin.id,
+        action: 'LOGIN',
+        entity: 'Auth',
+        entityId: admin.id,
+        details: { method: 'EMAIL_PASSWORD', status: 'SUCCESS' },
+        ipAddress: '127.0.0.1',
+        createdAt: new Date('2024-01-25T08:00:00Z'),
+      },
+      {
+        userId: admin.id,
+        action: 'CREATE',
+        entity: 'Camp',
+        entityId: camp1.id,
+        details: { name: 'Koramangala Community Health Camp' },
+        ipAddress: '127.0.0.1',
+        createdAt: new Date('2024-01-25T08:15:00Z'),
+      },
+      {
+        userId: doctor1.id,
+        action: 'CREATE',
+        entity: 'MedicalReport',
+        entityId: report1.id,
+        details: { patientId: patient2.id, diagnosis: 'Essential Hypertension' },
+        ipAddress: '127.0.0.1',
+        createdAt: new Date('2024-02-01T10:30:00Z'),
+      },
+    ],
+  });
+  console.log('✅ Audit logs created');
 
   console.log('\n🎉 Database seeded successfully!');
   console.log('\n📋 Default Login Credentials:');

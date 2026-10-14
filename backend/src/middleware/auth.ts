@@ -72,7 +72,8 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
  * Role-based access control middleware
  * @param roles - Array of allowed roles
  */
-export const authorize = (...roles: string[]) => {
+export const authorize = (...roles: (string | string[])[]) => {
+  const allowedRoles = roles.flat();
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
@@ -82,10 +83,10 @@ export const authorize = (...roles: string[]) => {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.user.role)) {
       res.status(403).json({
         success: false,
-        message: `Access denied. Required role: ${roles.join(' or ')}. Your role: ${req.user.role}`,
+        message: `Access denied. Required role: ${allowedRoles.join(' or ')}. Your role: ${req.user.role}`,
       });
       return;
     }

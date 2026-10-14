@@ -15,6 +15,7 @@ enum Role {
   DOCTOR
   VOLUNTEER
   PATIENT
+  ORGANIZER
 }
 
 enum CampStatus {
@@ -68,82 +69,138 @@ enum BloodGroup {
   AB_NEGATIVE
 }
 
+enum ReportStatus {
+  DRAFT
+  PUBLISHED
+  REVOKED
+}
+
+enum ConsentType {
+  TREATMENT
+  DATA_SHARING
+  RESEARCH
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+  LOGIN
+  LOGOUT
+  EXPORT
+}
+
+enum TransactionType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  EXPIRED
+}
+
+enum MedicineCategory {
+  TABLET
+  CAPSULE
+  SYRUP
+  INJECTION
+  OINTMENT
+  DROPS
+  INHALER
+  OTHER
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(PATIENT)
-  firstName String
-  lastName  String
-  phone     String?
-  avatar    String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  password              String
+  role                  Role                   @default(PATIENT)
+  firstName             String
+  lastName              String
+  phone                 String?
+  avatar                String?
+  isActive              Boolean                @default(true)
+  lastLoginAt           DateTime?
+  passwordResetToken    String?
+  passwordResetExpires  DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   // Relations
-  patientProfile    PatientProfile?
-  doctorProfile     DoctorProfile?
-  volunteerProfile  VolunteerProfile?
-  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
-  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
-  medicalReportsAsPatient MedicalReport[] @relation("PatientReports")
-  medicalReportsAsDoctor  MedicalReport[] @relation("DoctorReports")
-  notifications     Notification[]
-  followUpsAsPatient FollowUp[] @relation("PatientFollowUps")
-  followUpsAsDoctor  FollowUp[] @relation("DoctorFollowUps")
-  createdCamps      Camp[]
+  patientProfile         PatientProfile?
+  doctorProfile          DoctorProfile?
+  volunteerProfile       VolunteerProfile?
+  appointmentsAsPatient  Appointment[]          @relation("PatientAppointments")
+  appointmentsAsDoctor   Appointment[]          @relation("DoctorAppointments")
+  medicalReportsAsPatient MedicalReport[]       @relation("PatientReports")
+  medicalReportsAsDoctor  MedicalReport[]       @relation("DoctorReports")
+  referralsAsPatient     Referral[]             @relation("PatientReferrals")
+  referralsAsDoctor      Referral[]             @relation("DoctorReferrals")
+  notifications          Notification[]
+  followUpsAsPatient     FollowUp[]             @relation("PatientFollowUps")
+  followUpsAsDoctor      FollowUp[]             @relation("DoctorFollowUps")
+  createdCamps           Camp[]
+  consentRecords         ConsentRecord[]
+  auditLogs              AuditLog[]
+  staffAssignments       StaffAssignment[]
+  inventoryTransactions  InventoryTransaction[]
+  passwordResetTokens    PasswordResetToken[]
 
   @@map("users")
 }
 
 model Camp {
-  id          String     @id @default(cuid())
-  name        String
-  location    String
-  address     String
-  latitude    Float?
-  longitude   Float?
-  startDate   DateTime
-  endDate     DateTime
-  capacity    Int
-  registered  Int        @default(0)
-  status      CampStatus @default(UPCOMING)
-  services    String[]
-  description String?
-  createdById String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id               String            @id @default(cuid())
+  name             String
+  location         String
+  address          String
+  latitude         Float?
+  longitude        Float?
+  startDate        DateTime
+  endDate          DateTime
+  capacity         Int
+  registered       Int               @default(0)
+  status           CampStatus        @default(UPCOMING)
+  services         String[]
+  description      String?
+  createdById      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   // Relations
-  createdBy       User               @relation(fields: [createdById], references: [id])
-  appointments    Appointment[]
-  inventory       Inventory[]
-  medicalReports  MedicalReport[]
-  followUps       FollowUp[]
-  doctorProfiles  DoctorProfile[]    @relation("DoctorCamps")
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  appointments     Appointment[]
+  inventory        Inventory[]
+  medicalReports   MedicalReport[]
+  referrals        Referral[]
+  followUps        FollowUp[]
+  doctorProfiles   DoctorProfile[]   @relation("DoctorCamps")
   volunteerProfiles VolunteerProfile[] @relation("VolunteerCamp")
+  campServices     CampService[]
+  staffAssignments StaffAssignment[]
 
   @@map("camps")
 }
 
 model Appointment {
-  id         String            @id @default(cuid())
-  patientId  String
-  campId     String
-  doctorId   String?
-  date       DateTime
-  timeSlot   String
-  status     AppointmentStatus @default(PENDING)
-  queueToken String?
-  notes      String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id           String            @id @default(cuid())
+  patientId    String
+  campId       String
+  doctorId     String?
+  date         DateTime
+  timeSlot     String
+  status       AppointmentStatus @default(PENDING)
+  queueToken   String?
+  notes        String?
+  checkedInAt  DateTime?
+  qrCode       String?
+  noShow       Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   // Relations
-  patient    User        @relation("PatientAppointments", fields: [patientId], references: [id])
-  camp       Camp        @relation(fields: [campId], references: [id])
-  doctor     User?       @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient      User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  camp         Camp              @relation(fields: [campId], references: [id])
+  doctor       User?             @relation("DoctorAppointments", fields: [doctorId], references: [id])
   queueTokenRef QueueToken?
 
   @@unique([patientId, campId, date])
@@ -164,7 +221,7 @@ model PatientProfile {
   updatedAt        DateTime    @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("patient_profiles")
 }
@@ -179,8 +236,8 @@ model DoctorProfile {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedCamps Camp[] @relation("DoctorCamps")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCamps  Camp[]   @relation("DoctorCamps")
 
   @@map("doctor_profiles")
 }
@@ -195,14 +252,14 @@ model VolunteerProfile {
   updatedAt      DateTime  @updatedAt
 
   // Relations
-  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedCamp Camp? @relation("VolunteerCamp", fields: [assignedCampId], references: [id])
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCamp   Camp?     @relation("VolunteerCamp", fields: [assignedCampId], references: [id])
 
   @@map("volunteer_profiles")
 }
 
 model MedicalReport {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   patientId      String
   doctorId       String
   campId         String
@@ -210,35 +267,117 @@ model MedicalReport {
   prescription   String?
   observations   String?
   referral       String?
-  isConfidential Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isConfidential Boolean       @default(false)
+  status         ReportStatus  @default(DRAFT)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   // Relations
-  patient User @relation("PatientReports", fields: [patientId], references: [id])
-  doctor  User @relation("DoctorReports", fields: [doctorId], references: [id])
-  camp    Camp @relation(fields: [campId], references: [id])
+  patient        User          @relation("PatientReports", fields: [patientId], references: [id])
+  doctor         User          @relation("DoctorReports", fields: [doctorId], references: [id])
+  camp           Camp          @relation(fields: [campId], references: [id])
+  vitalSigns     VitalSign[]
+  referrals      Referral[]
 
   @@map("medical_reports")
 }
 
+model VitalSign {
+  id                    String        @id @default(cuid())
+  reportId              String
+  bloodPressureSystolic Int?
+  bloodPressureDiastolic Int?
+  heartRate             Int?
+  temperature           Float?
+  weight                Float?
+  height                Float?
+  bloodSugar            Float?
+  oxygenSaturation      Float?
+  notes                 String?
+  createdAt             DateTime      @default(now())
+
+  report                MedicalReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("vital_signs")
+}
+
+model Referral {
+  id           String         @id @default(cuid())
+  patientId    String
+  doctorId     String
+  campId       String
+  reportId     String?
+  hospitalName String
+  department   String
+  reason       String
+  urgency      String         @default("ROUTINE")
+  status       String         @default("PENDING")
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  patient      User           @relation("PatientReferrals", fields: [patientId], references: [id])
+  doctor       User           @relation("DoctorReferrals", fields: [doctorId], references: [id])
+  camp         Camp           @relation(fields: [campId], references: [id])
+  report       MedicalReport? @relation(fields: [reportId], references: [id])
+
+  @@map("referrals")
+}
+
 model Inventory {
-  id                String    @id @default(cuid())
+  id                String                 @id @default(cuid())
   campId            String
   medicineName      String
   genericName       String?
   quantity          Int
   unit              String
   expiryDate        DateTime?
-  lowStockThreshold Int       @default(10)
+  lowStockThreshold Int                    @default(10)
   supplier          String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  batchNumber       String?
+  category          MedicineCategory       @default(TABLET)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
   // Relations
-  camp Camp @relation(fields: [campId], references: [id])
+  camp              Camp                   @relation(fields: [campId], references: [id])
+  batches           MedicineBatch[]
+  transactions      InventoryTransaction[]
 
   @@map("inventory")
+}
+
+model MedicineBatch {
+  id           String    @id @default(cuid())
+  inventoryId  String
+  batchNumber  String
+  quantity     Int
+  receivedDate DateTime  @default(now())
+  expiryDate   DateTime?
+  supplier     String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  inventory    Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@map("medicine_batches")
+}
+
+model InventoryTransaction {
+  id            String          @id @default(cuid())
+  inventoryId   String
+  type          TransactionType
+  quantity      Int
+  batchId       String?
+  campId        String?
+  performedById String?
+  reason        String?
+  createdAt     DateTime        @default(now())
+
+  inventory     Inventory       @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  performedBy   User?           @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@map("inventory_transactions")
 }
 
 model Notification {
@@ -251,7 +390,7 @@ model Notification {
   createdAt DateTime         @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -268,22 +407,26 @@ model FollowUp {
   updatedAt     DateTime       @updatedAt
 
   // Relations
-  patient User @relation("PatientFollowUps", fields: [patientId], references: [id])
-  doctor  User @relation("DoctorFollowUps", fields: [doctorId], references: [id])
-  camp    Camp @relation(fields: [campId], references: [id])
+  patient       User           @relation("PatientFollowUps", fields: [patientId], references: [id])
+  doctor        User           @relation("DoctorFollowUps", fields: [doctorId], references: [id])
+  camp          Camp           @relation(fields: [campId], references: [id])
 
   @@map("follow_ups")
 }
 
 model QueueToken {
-  id            String      @id @default(cuid())
-  appointmentId String      @unique
-  tokenNumber   Int
-  status        QueueStatus @default(WAITING)
-  createdAt     DateTime    @default(now())
+  id                   String      @id @default(cuid())
+  appointmentId        String      @unique
+  tokenNumber          Int
+  status               QueueStatus @default(WAITING)
+  calledAt             DateTime?
+  completedAt          DateTime?
+  estimatedWaitMinutes Int?
+  position             Int?
+  createdAt            DateTime    @default(now())
 
   // Relations
-  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  appointment          Appointment @relation(fields: [appointmentId], references: [id])
 
   @@map("queue_tokens")
 }
@@ -296,4 +439,82 @@ model OfflineRegistration {
   syncedAt  DateTime?
 
   @@map("offline_registrations")
+}
+
+model ConsentRecord {
+  id          String      @id @default(cuid())
+  userId      String
+  consentType ConsentType
+  granted     Boolean     @default(true)
+  grantedAt   DateTime    @default(now())
+  revokedAt   DateTime?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("consent_records")
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?
+  action    AuditAction
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([action, entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model CampService {
+  id           String   @id @default(cuid())
+  campId       String
+  serviceName  String
+  description  String?
+  isActive     Boolean  @default(true)
+  maxCapacity  Int?
+  currentCount Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  camp         Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  @@map("camp_services")
+}
+
+model StaffAssignment {
+  id          String    @id @default(cuid())
+  userId      String
+  campId      String
+  role        String
+  assignedAt  DateTime  @default(now())
+  confirmedAt DateTime?
+  notes       String?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  camp        Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campId])
+  @@map("staff_assignments")
 }

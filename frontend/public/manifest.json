@@ -1,0 +1,18 @@
+{
+  "short_name": "HealthCamp",
+  "name": "Smart Community Health Camp Management System",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0a192f",
+  "theme_color": "#0ea5e9",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}
+

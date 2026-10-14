@@ -3,7 +3,9 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/errorHandler';
+import { generalLimiter } from './middleware/rateLimit';
 
 // Route imports
 import authRoutes from './routes/auth';
@@ -17,6 +19,13 @@ import inventoryRoutes from './routes/inventory';
 import reportRoutes from './routes/reports';
 import notificationRoutes from './routes/notifications';
 import offlineRoutes from './routes/offline';
+import passwordResetRoutes from './routes/passwordReset';
+import qrRoutes from './routes/qr';
+import pdfRoutes from './routes/pdf';
+import aiRoutes from './routes/ai';
+import consentRoutes from './routes/consent';
+import analyticsRoutes from './routes/analytics';
+import auditRoutes from './routes/audit';
 
 const app: Application = express();
 
@@ -64,9 +73,10 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ========================
-// Body Parsing & Compression
+// Body Parsing, Cookies & Compression
 // ========================
 app.use(compression());
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -78,9 +88,24 @@ app.get('/health', (_req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0',
+    version: '2.0.0-ultimate-3d',
+    features: [
+      '3D Visualizations',
+      'Live Queue Management',
+      'QR Check-In',
+      'PDF Medical Reports',
+      'AI Health Assistant',
+      'Offline Registration Sync',
+      'DPDP Consent Management',
+      'Audit Logging',
+    ],
   });
 });
+
+// ========================
+// Apply General Rate Limiter to API routes
+// ========================
+app.use('/api', generalLimiter);
 
 // ========================
 // API Routes (support both /api/v1 and /api)
@@ -97,6 +122,13 @@ app.get('/health', (_req, res) => {
   app.use(`${prefix}/reports`, reportRoutes);
   app.use(`${prefix}/notifications`, notificationRoutes);
   app.use(`${prefix}/offline`, offlineRoutes);
+  app.use(`${prefix}/password-reset`, passwordResetRoutes);
+  app.use(`${prefix}/qr`, qrRoutes);
+  app.use(`${prefix}/pdf`, pdfRoutes);
+  app.use(`${prefix}/ai`, aiRoutes);
+  app.use(`${prefix}/consent`, consentRoutes);
+  app.use(`${prefix}/analytics`, analyticsRoutes);
+  app.use(`${prefix}/audit`, auditRoutes);
 });
 
 // ========================

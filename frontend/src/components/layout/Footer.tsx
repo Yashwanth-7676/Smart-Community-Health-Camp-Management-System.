@@ -103,9 +103,14 @@ export const Footer: React.FC = () => {
 
         <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400">
           <p>© 2026 Smart Community Health Camp Management System. All rights reserved.</p>
-          <p className="flex items-center gap-1 text-[11px]">
-            Made with <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> for community healthcare.
-          </p>
+          <div className="flex items-center gap-4 text-[11px]">
+            <Link to="/about" className="hover:text-cyan-400 transition-colors">About Us</Link>
+            <Link to="/privacy" className="hover:text-cyan-400 transition-colors">Privacy Policy</Link>
+            <Link to="/awareness" className="hover:text-cyan-400 transition-colors">Health Guidelines</Link>
+            <span className="flex items-center gap-1 text-[11px] text-slate-500">
+              Made with <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> for community health
+            </span>
+          </div>
         </div>
       </div>
     </footer>

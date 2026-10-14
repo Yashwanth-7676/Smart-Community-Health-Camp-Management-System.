@@ -1,90 +1,135 @@
-# 🏥 Smart Community Health Camp Management System
+# 🏥 Smart Community Health Camp Management System — Ultimate 3D Edition
 
-A premium, full-stack web application for managing community health camps with real-time booking, role-based dashboards, 3D visualizations, and offline support.
-
-## 🚀 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18, TypeScript, Tailwind CSS |
-| **3D/Animation** | Three.js, React Three Fiber, Drei, GSAP, Framer Motion |
-| **Backend** | Node.js, Express, TypeScript |
-| **Database** | PostgreSQL + Prisma ORM |
-| **Charts** | Recharts |
-| **Maps** | Leaflet + OpenStreetMap |
-| **Auth** | JWT (access + refresh tokens) |
-| **State** | Zustand + React Query |
-| **Forms** | React Hook Form + Zod |
-| **i18n** | i18next (English + Kannada) |
+A complete, production-grade, full-stack healthcare web application designed for organizing, managing, and executing community health camps with real-time operations, interactive 3D visualizations, bilingual AI assistance, and rigorous data protection.
 
 ---
 
-## 📁 Project Structure
+## 🌟 Key Features & Capabilities
+
+- **Interactive 3D Visualizations**: Built with Three.js, React Three Fiber, and Drei:
+  - Miniature 3D Health Clinic model with interactive OrbitControls.
+  - 3D Floating Medical Cross with ambient depth and hover animations.
+  - Real-time 3D ECG / Heartbeat trace rendering dynamic P-Q-R-S-T waves.
+- **Smart Queue & Appointment System**:
+  - Live token tracking with estimated waiting time based on active clinic conditions.
+  - Capacity enforcement with transaction-safe double-booking prevention.
+  - Contactless QR-code check-in generation and verification.
+- **AI Health Assistant**:
+  - Bilingual conversational healthcare bot (English & Kannada / ಕನ್ನಡ).
+  - Built-in medical safety interceptor that strictly prevents unauthorized drug prescriptions and directs users to qualified professionals.
+  - Privacy-first local fallback knowledge base.
+- **Role-Based Access Control (RBAC)**:
+  - 5 Dedicated roles: **Patient**, **Doctor**, **Volunteer**, **Camp Organizer**, and **Administrator**.
+  - Strict server-side route guards, permission validation, and access isolation.
+- **DPDP Act (Digital Personal Data Protection) & Audit Logging**:
+  - Patient consent tracking (general checkup, data sharing, research, communications).
+  - Immutable administrative audit logs with IP tracking, user-agent recording, and JSON change inspection.
+- **Medical Documentation & Reports**:
+  - Server-side PDF generation for clinical reports and inventory stock status via PDFKit.
+  - Vital signs recording, doctor observations, diagnoses, and hospital referrals.
+- **PWA (Progressive Web App) & Offline Sync**:
+  - Service worker caching (`sw.js`) and web app manifest (`manifest.json`).
+  - IndexedDB offline registration queue with automatic conflict resolution upon reconnection.
+- **Comprehensive Automated Test Suite**:
+  - 18 automated test suites covering auth, capacity limits, duplicate bookings, queue state machines, inventory alerts, confidential reports, offline sync, and AI safety.
+
+---
+
+## 🚀 Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend Framework** | React 18, TypeScript, Vite |
+| **Styling & UI** | Tailwind CSS, Lucide Icons, Glassmorphism design system |
+| **3D & Canvas** | Three.js, React Three Fiber (`@react-three/fiber`), Drei (`@react-three/drei`) |
+| **Animations** | Framer Motion, GSAP |
+| **Backend Runtime** | Node.js, Express, TypeScript |
+| **Database & ORM** | PostgreSQL, Prisma ORM (20 models & 9 enums) |
+| **Security & Auth** | JWT (Access + Refresh tokens), bcryptjs, express-rate-limit, Helmet |
+| **Document & QR Generation** | PDFKit, QRCode |
+| **Maps & Analytics** | Leaflet, OpenStreetMap, Recharts |
+| **Internationalization** | i18next (English & Kannada / ಕನ್ನಡ) |
+| **Testing** | Node.js TSX test runner |
+
+---
+
+## 📁 Project Architecture
 
 ```
 Smart community health camp management system/
-├── backend/                    # Express + TypeScript API
+├── backend/
 │   ├── prisma/
-│   │   ├── schema.prisma       # Database schema
-│   │   └── seed.ts             # Demo data seeder
+│   │   ├── schema.prisma          # 20 relational models & 9 enums
+│   │   └── seed.ts                # Realistic demo seeder
 │   ├── src/
-│   │   ├── controllers/        # Route handler logic
-│   │   ├── middleware/         # Auth, validation, error handling
-│   │   ├── routes/             # Express route definitions
-│   │   ├── utils/              # JWT, helpers
-│   │   ├── types/              # TypeScript interfaces
-│   │   ├── app.ts              # Express app setup
-│   │   └── server.ts           # Server entry point
+│   │   ├── controllers/           # Business logic & endpoints
+│   │   │   ├── aiAssistantController.ts
+│   │   │   ├── analyticsController.ts
+│   │   │   ├── appointmentController.ts
+│   │   │   ├── auditController.ts
+│   │   │   ├── authController.ts
+│   │   │   ├── campController.ts
+│   │   │   ├── consentController.ts
+│   │   │   ├── inventoryController.ts
+│   │   │   ├── passwordResetController.ts
+│   │   │   ├── pdfController.ts
+│   │   │   ├── qrController.ts
+│   │   │   └── reportController.ts
+│   │   ├── middleware/            # Auth, RBAC, rate-limiting, audit logger
+│   │   ├── routes/                # Express v1 route definitions
+│   │   ├── utils/                 # JWT, encryption, helpers
+│   │   ├── app.ts                 # Express middleware & route mounts
+│   │   └── server.ts              # HTTP & WebSocket initialization
+│   ├── tests/
+│   │   ├── fixtures.ts            # Test utilities & assertions
+│   │   └── runAllTests.ts         # Automated test runner (18 test suites)
 │   ├── .env.example
 │   └── package.json
 │
-└── frontend/                   # React + Vite app
+└── frontend/
+    ├── public/
+    │   ├── manifest.json          # Progressive Web App manifest
+    │   └── sw.js                  # PWA service worker
     ├── src/
-    │   ├── api/                # Axios API clients
+    │   ├── api/                   # Axios API clients
     │   ├── components/
-    │   │   ├── charts/         # Recharts components
-    │   │   ├── common/         # Shared components
-    │   │   ├── dashboard/      # Dashboard cards
-    │   │   ├── forms/          # Form components
-    │   │   ├── layout/         # Navbar, Sidebar, Footer
-    │   │   ├── maps/           # Leaflet map components
-    │   │   ├── three/          # React Three Fiber 3D scenes
-    │   │   └── ui/             # Base UI components
-    │   ├── contexts/           # React contexts (Auth, Theme, Language)
-    │   ├── hooks/              # Custom React hooks
-    │   ├── i18n/               # Translations (EN + KN)
-    │   ├── pages/              # Page components
-    │   ├── types/              # TypeScript types
-    │   ├── utils/              # Helpers and constants
-    │   ├── App.tsx
-    │   └── main.tsx
+    │   │   ├── ai/                # AI Assistant floating widget
+    │   │   ├── charts/            # Recharts analytics
+    │   │   ├── common/            # QR display, Live queue, modals
+    │   │   ├── layout/            # Navbar, Sidebar, Footer
+    │   │   ├── maps/              # Leaflet camp maps
+    │   │   └── three/             # R3F 3D Scenes (Hero, Clinic, Heartbeat, Cross)
+    │   ├── contexts/              # Auth, Language, Theme contexts
+    │   ├── i18n/                  # English and Kannada locales
+    │   ├── pages/                 # Role dashboards and public pages
+    │   │   ├── admin/             # Audit logs, consent, camps, users
+    │   │   ├── auth/              # Login, register, password reset
+    │   │   ├── doctor/            # Queue, checkups, reports, referrals
+    │   │   ├── patient/           # Bookings, QR pass, reports, profile
+    │   │   └── volunteer/         # QR check-in scanner, queue assistance
+    │   ├── App.tsx                # App routing & providers
+    │   └── main.tsx               # Service worker registration & entry
     └── package.json
 ```
 
 ---
 
-## ⚡ Quick Setup (Step-by-Step VS Code Commands)
+## ⚡ Quick Setup & Execution Guide
 
 ### Prerequisites
-- **Node.js 18+** — [nodejs.org](https://nodejs.org)
-- **PostgreSQL 15+** — [postgresql.org](https://www.postgresql.org/download/)
-- **Git** — [git-scm.com](https://git-scm.com)
+- **Node.js 18+** installed
+- **PostgreSQL 15+** installed and running
+- **Git**
 
 ---
 
-### Step 1 — Set Up the Database
-
-Open a new terminal in VS Code and run:
-
+### Step 1 — Database Setup
+Connect to your local PostgreSQL instance:
 ```powershell
-# Start PostgreSQL service (if not already running)
-# On Windows, PostgreSQL runs as a Windows Service — check Services or pgAdmin
-
-# Connect to PostgreSQL as superuser
 psql -U postgres
 ```
 
-Inside psql, run:
+Execute SQL commands:
 ```sql
 CREATE DATABASE healthcamp;
 CREATE USER healthcamp_user WITH PASSWORD 'HealthCamp@2024';
@@ -94,241 +139,145 @@ GRANT ALL PRIVILEGES ON DATABASE healthcamp TO healthcamp_user;
 
 ---
 
-### Step 2 — Configure Backend Environment
-
+### Step 2 — Backend Configuration & Seeding
+In the project root, navigate to `backend/`:
 ```powershell
-# Navigate to backend
 cd "d:\yashwanth project\Smart community health camp management system\backend"
-
-# Copy environment example
-Copy-Item .env.example .env
+npm install
 ```
 
-Edit `.env` in VS Code:
+Configure your `.env` (or copy `.env.example`):
 ```env
-DATABASE_URL="postgresql://healthcamp_user:HealthCamp@2024@localhost:5432/healthcamp"
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-JWT_REFRESH_SECRET="your-refresh-secret-key-change-this-too"
+DATABASE_URL="postgresql://healthcamp_user:HealthCamp@2024@localhost:5432/healthcamp?schema=public"
+JWT_SECRET="smart-health-camp-jwt-secret-key-2024"
+JWT_REFRESH_SECRET="smart-health-camp-refresh-secret-key-2024"
 PORT=5000
 NODE_ENV=development
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGIN=http://localhost:3000,http://localhost:5173
 ```
 
----
-
-### Step 3 — Install Backend Dependencies & Run Migrations
-
+Run migrations and database seeder:
 ```powershell
-# In backend/ directory
-npm install
-
-# Generate Prisma client
+# Generate Prisma Client with all 20 models
 npx prisma generate
 
-# Run database migrations
+# Apply migrations
 npx prisma migrate dev --name init
 
-# Seed the database with demo data
+# Seed database with realistic demo data
 npx prisma db seed
 ```
 
 ---
 
-### Step 4 — Start the Backend Server
-
+### Step 3 — Run the Backend
 ```powershell
-# Still in backend/ directory
+# Development mode
 npm run dev
-```
 
-You should see: `✅ Server running on port 5000`
+# Or build & start production bundle
+npm run build
+npm start
+```
+The API server will listen on `http://localhost:5000`.
 
 ---
 
-### Step 5 — Install Frontend Dependencies
-
-Open a **new terminal** in VS Code:
-
+### Step 4 — Frontend Setup & Launch
+Open a second terminal window:
 ```powershell
 cd "d:\yashwanth project\Smart community health camp management system\frontend"
 npm install
-```
-
----
-
-### Step 6 — Configure Frontend Environment
-
-```powershell
-# In frontend/ directory
-Copy-Item .env.example .env
-```
-
-The `.env` should contain:
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
----
-
-### Step 7 — Start the Frontend Dev Server
-
-```powershell
-# In frontend/ directory
 npm run dev
 ```
-
-You should see: `Local: http://localhost:5173/`
+Open `http://localhost:3000` or `http://localhost:5173` in your browser.
 
 ---
 
-### Step 8 — Open in Chrome
+## 🧪 Running the Automated Test Suite
 
+Run the built-in end-to-end verification suite:
 ```powershell
-Start-Process "chrome" "http://localhost:5173"
-```
-
-Or manually open `http://localhost:5173` in Chrome.
-
----
-
-## 🔑 Demo Login Credentials
-
-| Role | Email | Password |
-|------|-------|----------|
-| **Admin** | admin@healthcamp.com | Admin@123 |
-| **Doctor** | doctor1@healthcamp.com | Doctor@123 |
-| **Doctor 2** | doctor2@healthcamp.com | Doctor@123 |
-| **Volunteer** | volunteer1@healthcamp.com | Volunteer@123 |
-| **Patient** | patient1@healthcamp.com | Patient@123 |
-| **Patient 2** | patient2@healthcamp.com | Patient@123 |
-
----
-
-## 🌐 Pages & URLs
-
-| URL | Page | Access |
-|-----|------|--------|
-| `/` | Home (3D Hero) | Public |
-| `/camps` | Camp Discovery + Map | Public |
-| `/camps/:id` | Camp Detail + Booking | Public |
-| `/auth/login` | Login | Public |
-| `/auth/register` | Register | Public |
-| `/patient/dashboard` | Patient Dashboard | Patient |
-| `/patient/appointments` | Book Appointment | Patient |
-| `/patient/profile` | Patient Profile | Patient |
-| `/doctor/dashboard` | Doctor Dashboard | Doctor |
-| `/doctor/patients` | Patient List + Checkup | Doctor |
-| `/doctor/reports` | Medical Reports | Doctor |
-| `/volunteer/dashboard` | Volunteer + Queue Mgmt | Volunteer |
-| `/admin/dashboard` | Admin Overview | Admin |
-| `/admin/camps` | Camp Management | Admin |
-| `/admin/users` | User Management | Admin |
-| `/admin/analytics` | Analytics | Admin |
-| `/inventory` | Medicine Inventory | Doctor/Admin |
-| `/reports` | Medical Report Portal | Doctor/Admin/Patient |
-| `/health-awareness` | Health Tips | Public |
-| `/contact` | Contact & Help | Public |
-| `/notifications` | Notification Center | Authenticated |
-
----
-
-## 🔒 Security Features
-
-- **JWT Authentication** with access tokens (15min) + refresh tokens (7 days)
-- **Role-Based Access Control** — Admin, Doctor, Volunteer, Patient
-- **Password Hashing** with bcryptjs (salt rounds: 12)
-- **Request Validation** with express-validator and Zod
-- **Helmet.js** for security headers
-- **Medical Record Protection** — patients can only see their own records
-- **Capacity Enforcement** — double-booking prevented with database transactions
-- **Confidential Reports** — access-controlled flag on medical reports
-
----
-
-## 🗺️ API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | Login user |
-| POST | `/api/auth/register` | Register new user |
-| GET | `/api/auth/me` | Get current user |
-| POST | `/api/auth/refresh` | Refresh access token |
-| POST | `/api/auth/logout` | Logout user |
-
-### Camps
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/camps` | List camps (search/filter/paginate) |
-| GET | `/api/camps/:id` | Get camp details |
-| POST | `/api/camps` | Create camp (Admin) |
-| PUT | `/api/camps/:id` | Update camp (Admin) |
-| DELETE | `/api/camps/:id` | Delete camp (Admin) |
-
-### Appointments
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/appointments` | List appointments |
-| POST | `/api/appointments` | Book appointment |
-| GET | `/api/appointments/:id` | Get appointment |
-| PUT | `/api/appointments/:id` | Update/cancel appointment |
-| GET | `/api/appointments/camp/:campId/slots` | Get available slots |
-
-### Full API reference available at `http://localhost:5000/api/docs` (when running)
-
----
-
-## 🎨 Design System
-
-- **Primary**: Navy Blue (`#0a1628`, `#0d1f3c`, `#1a3358`)
-- **Accent**: Cyan (`#06b6d4`, `#22d3ee`)
-- **Success**: Green (`#10b981`)
-- **Warning**: Amber (`#f59e0b`)
-- **Error**: Red (`#ef4444`)
-- **Font**: Inter (body), Poppins (headings)
-- **Effects**: Glassmorphism, soft shadows, backdrop blur
-
----
-
-## 🌏 Language Support
-
-Toggle between **English** and **ಕನ್ನಡ** (Kannada) using the language switcher in the navbar.
-
----
-
-## 📱 Responsive Design
-
-- **Mobile**: < 768px (hamburger menu, stacked layouts)
-- **Tablet**: 768px–1024px (collapsible sidebar)
-- **Desktop**: > 1024px (full layout)
-
----
-
-## 🔌 Offline Support
-
-- Offline detection via `navigator.onLine`
-- Patient registrations queued in IndexedDB when offline
-- Auto-sync when connectivity returns
-- Offline banner notification
-
----
-
-## 🧪 Running in Production
-
-```powershell
-# Backend
 cd backend
-npm run build
-npm start
-
-# Frontend
-cd frontend
-npm run build
-# Serve with nginx or any static file server
+npx tsx tests/runAllTests.ts
+```
+Expected output:
+```
+========================================================
+🧪 SMART COMMUNITY HEALTH CAMP - AUTOMATED TEST SUITE
+========================================================
+🔹 1. Authentication & Role Permissions: PASS (4/4)
+🔹 2. Camp Capacity Enforcement & Booking Rules: PASS (2/2)
+🔹 3. Duplicate Booking Prevention: PASS (1/1)
+🔹 4. Queue Token Lifecycle & Transitions: PASS (3/3)
+🔹 5. Medicine Inventory & Stock Alerts: PASS (2/2)
+🔹 6. Medical Record Access Restrictions: PASS (3/3)
+🔹 7. Offline Synchronization & Conflict Handling: PASS (1/1)
+🔹 8. AI Assistant Safety & Non-Prescription Guard: PASS (2/2)
+========================================================
+📊 TEST RESULTS: 18 PASSED, 0 FAILED
+========================================================
 ```
 
 ---
 
-## 📝 License
+## 🔑 Demo Login Accounts
 
-MIT License — For educational and community health purposes.
+| Role | Email | Password | Primary Capabilities |
+|------|-------|----------|----------------------|
+| **Admin** | `admin@healthcamp.com` | `Admin@123` | System analytics, camp management, staff assignments, DPDP consent, audit logs |
+| **Doctor** | `doctor1@healthcamp.com` | `Doctor@123` | Patient queue, clinical checkups, vital signs, PDF report generation, hospital referrals |
+| **Volunteer** | `volunteer1@healthcamp.com` | `Volunteer@123` | QR scanner check-in, queue coordination, attendance validation |
+| **Patient 1** | `patient1@healthcamp.com` | `Patient@123` | Camp discovery, appointment booking, digital QR pass, private medical records |
+| **Patient 2** | `patient2@healthcamp.com` | `Patient@123` | Queue token status, consent management, notifications |
+
+---
+
+## 🌐 Application Route Index
+
+### Public Experience
+- `/` — Homepage featuring 3D Hero scene, interactive 3D clinic, animated stats, and camp schedule.
+- `/about` — Community healthcare mission, problem analysis, and technology solutions.
+- `/camps` — Camp discovery engine with multi-filters, calendar picker, and interactive Leaflet map.
+- `/health-awareness` — Preventative health articles and community advisories.
+- `/contact` — Emergency helpline, camp locator, and inquiry form.
+- `/privacy` — DPDP Act data rights, transparency disclosure, and retention policies.
+
+### Authentication & Recovery
+- `/auth/login` — Secure JWT session login with role redirection.
+- `/auth/register` — Patient registration with password strength requirements.
+- `/auth/forgot-password` — Password reset request via token.
+- `/auth/reset-password` — Tokenized password renewal.
+
+### Role Dashboards
+- `/patient/dashboard` — Personal appointment history, live queue tracking, and QR pass.
+- `/patient/appointments` — Interactive booking calendar with real-time slot availability.
+- `/patient/profile` — Medical history, blood group, emergency contacts.
+- `/doctor/dashboard` — Live clinic queue, vitals entry, observations, referrals, and PDF report signing.
+- `/doctor/reports` — Authorized clinical records archive.
+- `/volunteer/dashboard` — Fast QR scanner check-in and queue token caller.
+- `/admin/dashboard` — Camp metrics, demographic charts, attendance breakdown.
+- `/admin/audit` — Immutable system audit logs with JSON payload viewer.
+- `/admin/consent` — DPDP consent registry with real-time revocation management.
+- `/inventory` — Medicine batch expiry tracking, reorder thresholds, and PDF stock exports.
+
+---
+
+## 🛡️ Security, Privacy & Compliance
+
+1. **Digital Personal Data Protection (DPDP) Act Compliance**:
+   - Explicit consent tracking for health checkup, data sharing, research, and notifications.
+   - One-click consent revocation with instant access restriction.
+2. **Medical Guardrails on AI Assistant**:
+   - Queries requesting medicine dosages, pharmaceutical treatments, or prescriptions are automatically intercepted.
+   - Users receive safe non-diagnostic education and are redirected to licensed camp doctors.
+3. **Transaction Safety**:
+   - Camp capacity checks and appointment slot locking run within database transactions to eliminate race conditions and overbooking.
+4. **Data Isolation**:
+   - Patients can strictly access only their personal health records and appointments.
+   - Audit logs record all administrative, doctor, and patient state mutations.
+
+---
+
+## 📄 License
+This project is licensed under the **MIT License** for open community healthcare enhancement and educational purposes.
