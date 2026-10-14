@@ -22,6 +22,9 @@ import {
   Package,
   FileText,
   BarChart3,
+  Sparkles,
+  ClipboardList,
+  ShieldAlert,
 } from 'lucide-react';
 import apiClient from '@/api/client';
 
@@ -51,7 +54,7 @@ export const AdminDashboard: React.FC = () => {
       setDoctorsList(users.filter((u: any) => u.role === 'DOCTOR' || u.role === 'doctor'));
       setVolunteersList(users.filter((u: any) => u.role === 'VOLUNTEER' || u.role === 'volunteer'));
     } catch {
-      // fallback
+      // fallback handled gracefully
     } finally {
       setIsLoading(false);
     }
@@ -62,49 +65,53 @@ export const AdminDashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-cyan-950 to-blue-950 text-white shadow-xl border border-cyan-500/20">
-        <div>
-          <span className="text-xs uppercase tracking-wider font-semibold text-cyan-400">
-            System Administration
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold mt-1">
-            Community Health Network HQ
-          </h1>
-          <p className="text-sm text-slate-300 mt-1 max-w-lg">
-            High-level oversight of community camps, clinical deployments, inventory thresholds, and patient volume.
-          </p>
-        </div>
+    <div className="space-y-8 pb-10">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-cyan-950 to-blue-950 text-white shadow-3d border border-cyan-500/25 p-7 sm:p-9">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Executive Command Center • Real-Time Health Analytics</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
+              Community Health Network HQ
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+              Oversight of camp scheduling, clinical deployments, pharmaceutical inventory, and DPDP consent tracking across all taluks.
+            </p>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            variant="outline"
-            className="border-cyan-400/40 text-cyan-300 hover:bg-cyan-950/60"
-            onClick={() => setShowStaffModal(true)}
-            leftIcon={<UserCheck className="w-4 h-4" />}
-          >
-            Deploy Staff to Camp
-          </Button>
-          <Button
-            variant="secondary"
-            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold border-0 shadow-lg shadow-cyan-500/20"
-            onClick={() => setShowCampModal(true)}
-            leftIcon={<PlusCircle className="w-4 h-4" />}
-          >
-            Create Health Camp
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              className="border-cyan-400/40 text-cyan-300 hover:bg-cyan-950/60 text-xs sm:text-sm font-semibold"
+              onClick={() => setShowStaffModal(true)}
+              leftIcon={<UserCheck className="w-4 h-4 text-cyan-400" />}
+            >
+              Deploy Staff to Camp
+            </Button>
+            <Button
+              variant="secondary"
+              className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold border-0 shadow-lg shadow-cyan-500/20 text-xs sm:text-sm"
+              onClick={() => setShowCampModal(true)}
+              leftIcon={<PlusCircle className="w-4 h-4 text-slate-950" />}
+            >
+              Create Health Camp
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Total Camps Scheduled"
           value={stats?.totalCamps || campsList.length || 18}
           icon={Calendar}
           variant="primary"
-          trend={{ value: `${stats?.activeCamps || 4} active`, isPositive: true }}
+          trend={{ value: `${stats?.activeCamps || 4} active this week`, isPositive: true }}
         />
         <StatCard
           title="Registered Patients"
@@ -113,7 +120,7 @@ export const AdminDashboard: React.FC = () => {
           variant="secondary"
         />
         <StatCard
-          title="Deployed Doctors"
+          title="Enrolled Physicians"
           value={stats?.totalDoctors || doctorsList.length || 28}
           icon={Stethoscope}
           variant="success"
@@ -128,74 +135,104 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-4">
-            Patient Registrations & Checkup Throughput
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-3d">
+          <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 mb-4 flex items-center justify-between">
+            <span>Patient Registrations & Checkup Throughput</span>
+            <span className="text-[11px] text-cyan-500 font-semibold">Weekly</span>
           </h3>
           <RegistrationChart />
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-4">
-            Clinical Services Utilization
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-3d">
+          <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 mb-4 flex items-center justify-between">
+            <span>Clinical Services Utilization</span>
+            <span className="text-[11px] text-cyan-500 font-semibold">By Department</span>
           </h3>
           <ServiceUtilizationChart />
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-4">
-            Camp Capacity vs Registered Turnout
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-3d">
+          <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 mb-4 flex items-center justify-between">
+            <span>Camp Capacity vs Registered Turnout</span>
+            <span className="text-[11px] text-cyan-500 font-semibold">Capacity Ratio</span>
           </h3>
           <CampPatientChart />
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 mb-4">
-            Appointment Status Breakdown
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-3d">
+          <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 mb-4 flex items-center justify-between">
+            <span>Appointment Status Breakdown</span>
+            <span className="text-[11px] text-cyan-500 font-semibold">Aggregate</span>
           </h3>
           <AppointmentStatusChart />
         </div>
       </div>
 
-      {/* Quick Links Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Executive Quick Links & Governance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Link
           to="/admin/camps"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/40 transition-colors shadow-sm flex items-center justify-between"
+          className="p-5 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 hover:shadow-glow transition-all shadow-sm flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-cyan-500" />
-            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-              Manage All Camps
+            <Calendar className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+              Manage Camps
             </span>
           </div>
-          <span className="text-xs text-cyan-500 font-bold">→</span>
+          <span className="text-xs text-cyan-500 font-bold group-hover:translate-x-1 transition-transform">→</span>
         </Link>
 
         <Link
           to="/admin/users"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/40 transition-colors shadow-sm flex items-center justify-between"
+          className="p-5 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 hover:shadow-glow transition-all shadow-sm flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-cyan-500" />
-            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-              Staff & User Directory
+            <Users className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+              Staff Directory
             </span>
           </div>
-          <span className="text-xs text-cyan-500 font-bold">→</span>
+          <span className="text-xs text-cyan-500 font-bold group-hover:translate-x-1 transition-transform">→</span>
         </Link>
 
         <Link
           to="/inventory"
-          className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/40 transition-colors shadow-sm flex items-center justify-between"
+          className="p-5 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 hover:shadow-glow transition-all shadow-sm flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
-            <Package className="w-5 h-5 text-cyan-500" />
-            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-              Medicine Stock & Alerts
+            <Package className="w-5 h-5 text-cyan-500 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+              Pharmacy Stock
             </span>
           </div>
-          <span className="text-xs text-cyan-500 font-bold">→</span>
+          <span className="text-xs text-cyan-500 font-bold group-hover:translate-x-1 transition-transform">→</span>
+        </Link>
+
+        <Link
+          to="/admin/audit"
+          className="p-5 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 hover:shadow-glow transition-all shadow-sm flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3">
+            <ClipboardList className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+              Audit Trails
+            </span>
+          </div>
+          <span className="text-xs text-amber-500 font-bold group-hover:translate-x-1 transition-transform">→</span>
+        </Link>
+
+        <Link
+          to="/admin/consent"
+          className="p-5 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 hover:shadow-glow transition-all shadow-sm flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+            <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+              DPDP Consents
+            </span>
+          </div>
+          <span className="text-xs text-emerald-500 font-bold group-hover:translate-x-1 transition-transform">→</span>
         </Link>
       </div>
 
@@ -205,7 +242,7 @@ export const AdminDashboard: React.FC = () => {
           isOpen={showCampModal}
           onClose={() => setShowCampModal(false)}
           title="Schedule New Health Camp"
-          description="Configure location, dates, capacity, coordinates, and services."
+          description="Configure village location, dates, maximum capacity, coordinates, and clinical services."
           maxWidth="2xl"
         >
           <CampForm
@@ -224,7 +261,7 @@ export const AdminDashboard: React.FC = () => {
           isOpen={showStaffModal}
           onClose={() => setShowStaffModal(false)}
           title="Deploy Medical Staff to Camp"
-          description="Assign licensed doctors and volunteers to upcoming camp locations."
+          description="Assign licensed doctors and volunteer coordinators to active camp operations."
           maxWidth="lg"
         >
           <StaffAssignmentForm
@@ -243,4 +280,3 @@ export const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
-

@@ -35,6 +35,11 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/services" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
+                  Clinical Services Spectrum
+                </Link>
+              </li>
+              <li>
                 <Link to="/patient/book" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
                   Book Slot Online
                 </Link>
@@ -105,6 +110,7 @@ export const Footer: React.FC = () => {
           <p>© 2026 Smart Community Health Camp Management System. All rights reserved.</p>
           <div className="flex items-center gap-4 text-[11px]">
             <Link to="/about" className="hover:text-cyan-400 transition-colors">About Us</Link>
+            <Link to="/services" className="hover:text-cyan-400 transition-colors">Services</Link>
             <Link to="/privacy" className="hover:text-cyan-400 transition-colors">Privacy Policy</Link>
             <Link to="/awareness" className="hover:text-cyan-400 transition-colors">Health Guidelines</Link>
             <span className="flex items-center gap-1 text-[11px] text-slate-500">
@@ -118,4 +124,3 @@ export const Footer: React.FC = () => {
 };
 
 export default Footer;
-

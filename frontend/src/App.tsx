@@ -19,6 +19,7 @@ import AccessDenied from '@/components/common/AccessDenied';
 
 // Lazy Loaded Pages
 const About = lazy(() => import('@/pages/About'));
+const Services = lazy(() => import('@/pages/Services'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
@@ -50,6 +51,7 @@ export const App: React.FC = () => {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
             <Route path="/camps" element={<CampDiscovery />} />
             <Route path="/camps/:id" element={<CampDetail />} />
             <Route path="/awareness" element={<HealthAwareness />} />
