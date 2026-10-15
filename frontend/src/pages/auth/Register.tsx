@@ -124,7 +124,7 @@ export default function Register() {
             <p className="text-gray-500 dark:text-gray-400 mb-6">Your account has been created. Please login to continue.</p>
           </>
         )}
-        <Link to="/auth/login" className="inline-block px-8 py-3 bg-cyan-500 text-white font-bold rounded-xl hover:bg-cyan-400 transition-colors">Go to Login</Link>
+        <Link to="/login" className="inline-block px-8 py-3 bg-cyan-500 text-white font-bold rounded-xl hover:bg-cyan-400 transition-colors">Go to Login</Link>
       </motion.div>
     </div>
   );
@@ -318,7 +318,7 @@ export default function Register() {
 
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           Already have an account?{' '}
-          <Link to="/auth/login" className="text-cyan-500 hover:text-cyan-400 font-semibold">Sign in</Link>
+          <Link to="/login" className="text-cyan-500 hover:text-cyan-400 font-semibold">Sign in</Link>
         </p>
       </div>
     </div>

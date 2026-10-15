@@ -59,8 +59,12 @@ export const App: React.FC = () => {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/auth/login" element={<Navigate to="/login" replace />} />
+            <Route path="/auth/register" element={<Navigate to="/register" replace />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/forgot-password" element={<Navigate to="/forgot-password" replace />} />
+            <Route path="/auth/reset-password" element={<Navigate to="/reset-password" replace />} />
             <Route path="/access-denied" element={<AccessDenied />} />
           </Route>
 

@@ -8,6 +8,7 @@ import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Mail, Lock, Heart, LogIn, AlertCircle } from 'lucide-react';
 import apiClient from '@/api/client';
+import { useAuth } from '@/hooks/useAuth';
 import { LOCAL_STORAGE_KEYS } from '@/utils/constants';
 
 const loginSchema = z.object({
@@ -33,20 +34,22 @@ const ROLE_ROUTES: Record<string, string> = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginForm) => apiClient.post('/auth/login', { email: data.email, password: data.password }).then(r => r.data.data),
-    onSuccess: (data) => {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN, data.accessToken);
-      if (data.refreshToken) localStorage.setItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(data.user));
-      toast.success(`Welcome back, ${data.user.firstName}!`);
-      navigate(ROLE_ROUTES[data.user.role] ?? '/');
+    mutationFn: async (data: LoginForm) => {
+      await login(data.email, data.password);
+      const userStr = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
+      return userStr ? JSON.parse(userStr) : null;
+    },
+    onSuccess: (user) => {
+      const role = (user?.role || '').toLowerCase();
+      navigate(ROLE_ROUTES[role] ?? '/');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Login failed. Check your credentials.');
+      // Toast error is handled inside AuthContext.login
     },
   });
 
@@ -133,7 +136,7 @@ export default function Login() {
                 <input type="checkbox" {...register('rememberMe')} className="w-4 h-4 rounded border-gray-300 text-cyan-500 focus:ring-cyan-400" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
               </label>
-              <Link to="/auth/forgot-password" className="text-sm text-cyan-500 hover:text-cyan-400 font-medium">Forgot password?</Link>
+              <Link to="/forgot-password" className="text-sm text-cyan-500 hover:text-cyan-400 font-medium">Forgot password?</Link>
             </div>
 
             <button type="submit" disabled={loginMutation.isPending} className="w-full py-3.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
@@ -142,7 +145,7 @@ export default function Login() {
 
             <p className="text-center text-sm text-gray-500 dark:text-gray-400">
               Don't have an account?{' '}
-              <Link to="/auth/register" className="text-cyan-500 hover:text-cyan-400 font-semibold">Create one</Link>
+              <Link to="/register" className="text-cyan-500 hover:text-cyan-400 font-semibold">Create one</Link>
             </p>
           </motion.form>
 

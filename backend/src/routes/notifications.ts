@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient, NotificationType } from '@prisma/client';
 import { authenticate, authorize } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import { isDbConnectionError } from '../utils/mockStore';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -17,15 +18,28 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.userId;
     if (!userId) throw new AppError('Unauthorized', 401);
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    let notifications: any[] = [];
+    let unreadCount = 0;
 
-    const unreadCount = await prisma.notification.count({
-      where: { userId, isRead: false },
-    });
+    try {
+      [notifications, unreadCount] = await Promise.all([
+        prisma.notification.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }),
+        prisma.notification.count({
+          where: { userId, isRead: false },
+        }),
+      ]);
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        notifications = [];
+        unreadCount = 0;
+      } else {
+        throw dbErr;
+      }
+    }
 
     res.json({
       success: true,

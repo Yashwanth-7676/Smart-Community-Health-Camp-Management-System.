@@ -46,6 +46,15 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't attempt refresh or redirect for auth endpoints
+      const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh');
+      if (isAuthEndpoint) {
+        return Promise.reject(error);
+      }
+
+      const currentPath = window.location.pathname;
+      const isAlreadyOnAuthPage = currentPath.includes('/login') || currentPath.includes('/register');
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -57,18 +66,20 @@ apiClient.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
-      originalRequest._retry = true;
-      isRefreshing = true;
-
       const refreshToken = localStorage.getItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
 
       if (!refreshToken) {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
-        window.location.href = '/auth/login';
+        if (!isAlreadyOnAuthPage) {
+          window.location.href = '/login';
+        }
         return Promise.reject(error);
       }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const response = await axios.post(`${API_URL}/auth/refresh`, {
@@ -85,7 +96,9 @@ apiClient.interceptors.response.use(
         localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
-        window.location.href = '/auth/login';
+        if (!isAlreadyOnAuthPage) {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -22,6 +22,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchNotifications = useCallback(async () => {
+    const token = localStorage.getItem('hc_auth_token') || localStorage.getItem('token');
+    if (!token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const res = await notificationsApi.getAll();
