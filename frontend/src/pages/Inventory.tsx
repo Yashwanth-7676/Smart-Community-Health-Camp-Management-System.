@@ -28,6 +28,7 @@ export const Inventory: React.FC = () => {
     expiryDate: '',
     lowStockThreshold: 15,
     supplier: 'State Health Depot',
+    batchNumber: '',
   });
 
   const fetchInventory = async () => {
@@ -75,6 +76,16 @@ export const Inventory: React.FC = () => {
     }
   };
 
+  const handleExportPDF = () => {
+    if (!selectedCampId) {
+      toast.error('Select a camp first');
+      return;
+    }
+    const baseURL = apiClient.defaults.baseURL || 'http://localhost:5000/api/v1';
+    window.open(`${baseURL}/pdf/inventory/${selectedCampId}`, '_blank');
+    toast.success('Opening official camp inventory dispatch PDF...');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -86,17 +97,26 @@ export const Inventory: React.FC = () => {
             Medicine & Supply Inventory
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Real-time tracking of camp stocks, expiry warnings, and dispensary reordering.
+            Real-time tracking of camp stocks, batch tracking, expiry warnings, and dispensary reordering.
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          onClick={() => setShowAddModal(true)}
-          leftIcon={<PlusCircle className="w-4 h-4" />}
-        >
-          Add Medicine Stock
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            className="border-slate-300 dark:border-slate-700 text-xs font-bold"
+          >
+            Export Stock PDF
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setShowAddModal(true)}
+            leftIcon={<PlusCircle className="w-4 h-4" />}
+          >
+            Add Medicine Stock
+          </Button>
+        </div>
       </div>
 
       {/* Low Stock Alerts Section */}
@@ -146,6 +166,7 @@ export const Inventory: React.FC = () => {
             <TableRow>
               <TableHead>Medicine Name</TableHead>
               <TableHead>Generic Composition</TableHead>
+              <TableHead>Batch #</TableHead>
               <TableHead>Stock Level</TableHead>
               <TableHead>Expiry Date</TableHead>
               <TableHead>Threshold</TableHead>
@@ -155,7 +176,7 @@ export const Inventory: React.FC = () => {
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                   No inventory records logged for this health camp.
                 </TableCell>
               </TableRow>
@@ -169,6 +190,9 @@ export const Inventory: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-xs text-slate-500">
                       {item.genericName || '—'}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-cyan-600 dark:text-cyan-400">
+                      {item.batchNumber || `BAT-${item.id.slice(-4).toUpperCase()}`}
                     </TableCell>
                     <TableCell className="font-bold">
                       {item.quantity} {item.unit}
@@ -211,15 +235,27 @@ export const Inventory: React.FC = () => {
                 placeholder="e.g. Paracetamol 500mg"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Generic Name
-              </label>
-              <Input
-                value={newItem.genericName}
-                onChange={(e) => setNewItem({ ...newItem, genericName: e.target.value })}
-                placeholder="e.g. Acetaminophen"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Generic Name
+                </label>
+                <Input
+                  value={newItem.genericName}
+                  onChange={(e) => setNewItem({ ...newItem, genericName: e.target.value })}
+                  placeholder="e.g. Acetaminophen"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Batch Number
+                </label>
+                <Input
+                  value={newItem.batchNumber}
+                  onChange={(e) => setNewItem({ ...newItem, batchNumber: e.target.value })}
+                  placeholder="e.g. BAT-2026-90"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

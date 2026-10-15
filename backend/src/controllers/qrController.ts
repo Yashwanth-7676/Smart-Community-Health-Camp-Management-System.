@@ -86,30 +86,47 @@ export const generateQRCode = async (req: Request, res: Response, next: NextFunc
  */
 export const verifyQRCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { qrData } = req.body;
+    const { qrData, qrToken, token } = req.body;
     const user = req.user!;
+    const input = qrData || qrToken || token;
 
-    if (!qrData) {
-      throw new AppError('QR data required', 400, 'MISSING_DATA');
+    if (!input) {
+      throw new AppError('QR data or token is required for check-in', 400, 'MISSING_DATA');
     }
 
-    let parsed: any;
-    try {
-      parsed = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
-    } catch {
-      throw new AppError('Invalid QR code format', 400, 'INVALID_QR');
+    let appointmentId: string | null = null;
+    let tokenStr: string | null = null;
+
+    if (typeof input === 'string') {
+      try {
+        const parsed = JSON.parse(input);
+        if (parsed.aid) appointmentId = parsed.aid;
+        if (parsed.token) tokenStr = String(parsed.token);
+      } catch {
+        // Plain string token or appointment ID entered manually by volunteer
+        if (input.startsWith('appt-') || input.length > 20) {
+          appointmentId = input;
+        } else {
+          tokenStr = input;
+        }
+      }
+    } else if (typeof input === 'object') {
+      if (input.aid) appointmentId = input.aid;
+      if (input.token) tokenStr = String(input.token);
+      if (input.qrToken) tokenStr = String(input.qrToken);
     }
 
-    if (parsed.app !== 'HEALTHCAMP_CHECKIN' || !parsed.aid) {
-      throw new AppError('Unrecognized health camp QR code', 400, 'INVALID_QR');
-    }
-
-    const appointmentId = parsed.aid;
     let appointment: any = null;
 
     try {
-      appointment = await prisma.appointment.findUnique({
-        where: { id: appointmentId },
+      const whereClause: any = appointmentId
+        ? { id: appointmentId }
+        : tokenStr
+        ? { queueToken: tokenStr }
+        : {};
+
+      appointment = await prisma.appointment.findFirst({
+        where: whereClause,
         include: {
           patient: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
           camp: { select: { id: true, name: true, location: true } },
@@ -119,9 +136,10 @@ export const verifyQRCode = async (req: Request, res: Response, next: NextFuncti
 
       if (appointment) {
         appointment = await prisma.appointment.update({
-          where: { id: appointmentId },
+          where: { id: appointment.id },
           data: {
             checkedInAt: new Date(),
+            status: 'CONFIRMED',
           },
           include: {
             patient: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
@@ -132,7 +150,10 @@ export const verifyQRCode = async (req: Request, res: Response, next: NextFuncti
       }
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
-        appointment = DEMO_APPOINTMENTS.find((a) => a.id === appointmentId) || DEMO_APPOINTMENTS[0];
+        appointment = DEMO_APPOINTMENTS.find((a) => 
+          (appointmentId && a.id === appointmentId) || 
+          (tokenStr && (a.queueToken === tokenStr || String(a.queueTokenRef?.tokenNumber) === tokenStr))
+        ) || DEMO_APPOINTMENTS[0];
       } else {
         throw dbErr;
       }

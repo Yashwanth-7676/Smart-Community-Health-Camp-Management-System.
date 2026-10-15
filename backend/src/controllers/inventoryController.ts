@@ -44,7 +44,7 @@ export const getInventoryByCamp = async (req: Request, res: Response, next: Next
 export const addInventoryItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { campId } = req.params;
-    const { medicineName, genericName, quantity, unit, expiryDate, lowStockThreshold, supplier } = req.body;
+    const { medicineName, genericName, quantity, unit, expiryDate, lowStockThreshold, supplier, batchNumber } = req.body;
 
     if (!medicineName || quantity === undefined || !unit) {
       throw new AppError('Medicine name, quantity, and unit are required', 400);
@@ -60,6 +60,7 @@ export const addInventoryItem = async (req: Request, res: Response, next: NextFu
         expiryDate: expiryDate ? new Date(expiryDate) : null,
         lowStockThreshold: lowStockThreshold !== undefined ? parseInt(lowStockThreshold, 10) : 10,
         supplier: supplier || null,
+        batchNumber: batchNumber || `BAT-${Date.now().toString().slice(-6)}`,
       },
     });
 
@@ -80,6 +81,7 @@ export const addInventoryItem = async (req: Request, res: Response, next: NextFu
         expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
         lowStockThreshold: req.body.lowStockThreshold !== undefined ? parseInt(req.body.lowStockThreshold, 10) : 10,
         supplier: req.body.supplier || null,
+        batchNumber: req.body.batchNumber || `BAT-${Date.now().toString().slice(-6)}`,
         camp: { id: req.params.campId, name: 'Health Camp' },
       };
       DEMO_INVENTORY.push(newItem as any);

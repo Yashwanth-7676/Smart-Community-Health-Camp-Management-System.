@@ -22,8 +22,10 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { DemoCredentialsModal } from '@/components/common/DemoCredentialsModal';
+import { useTranslation } from 'react-i18next';
 
 export const Navbar: React.FC = () => {
+  const { t } = useTranslation();
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -51,12 +53,12 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinks = [
-    { label: 'Home', path: '/' },
-    { label: 'About', path: '/about' },
-    { label: 'Health Camps', path: '/camps' },
-    { label: 'Services', path: '/services' },
-    { label: 'Health Awareness', path: '/awareness' },
-    { label: 'Contact', path: '/contact' },
+    { label: t('nav.home', 'Home'), path: '/' },
+    { label: t('nav.about', 'About'), path: '/about' },
+    { label: t('nav.camps', 'Health Camps'), path: '/camps' },
+    { label: t('nav.services', 'Services'), path: '/services' },
+    { label: t('nav.healthAwareness', 'Health Awareness'), path: '/awareness' },
+    { label: t('nav.contact', 'Contact'), path: '/contact' },
   ];
 
   return (

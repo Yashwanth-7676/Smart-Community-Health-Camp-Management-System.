@@ -1,7 +1,9 @@
 {
   "nav": {
     "home": "Home",
+    "about": "About",
     "camps": "Camps",
+    "services": "Services",
     "healthAwareness": "Health Awareness",
     "contact": "Contact",
     "login": "Login",

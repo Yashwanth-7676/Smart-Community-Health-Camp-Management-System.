@@ -8,6 +8,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { QueueToken } from '@/components/common/QueueToken';
 import { QRCodeDisplay } from '@/components/common/QRCodeDisplay';
 import { LiveQueueDisplay } from '@/components/common/LiveQueueDisplay';
+import { DigitalHealthPassport } from '@/components/common/DigitalHealthPassport';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
@@ -106,6 +107,12 @@ export const PatientDashboard: React.FC = () => {
           variant="secondary"
         />
       </div>
+
+      {/* Digital Health Passport with Verifiable Pass & PDF Export */}
+      <DigitalHealthPassport
+        patient={user || {}}
+        latestReportId={completedAppointments[0]?.id || 'rep-1'}
+      />
 
       {/* Real-time Queue Monitor for Active Visit */}
       {activeCampAppointment && (

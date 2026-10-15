@@ -107,6 +107,16 @@ async function runLiveAudit() {
   const volToken = volLoginData.data?.tokens?.accessToken || volLoginData.data?.accessToken;
   assert(Boolean(volToken && volLoginData.data?.user?.role?.toUpperCase() === 'VOLUNTEER'), '4.1 Volunteer logs in with venue operations credentials');
 
+  const qrCheckinRes = await fetch(`${API_BASE}/qr/verify-checkin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${volToken}`,
+    },
+    body: JSON.stringify({ qrToken: 'KRM-001', campId: targetCamp.id }),
+  });
+  assert(qrCheckinRes.status === 200, '4.2 Volunteer executes contactless patient QR check-in successfully');
+
   // WORKFLOW 5: Doctor views authorized patient information and records screening
   console.log('\n▶ Workflow 5: Doctor Consultation & Clinical Screening');
   const docLoginRes = await fetch(`${API_BASE}/auth/login`, {
@@ -147,6 +157,11 @@ async function runLiveAudit() {
   });
   assert(unauthReportRes.status === 403 || unauthReportRes.status === 404, '6.1 Non-medical field personnel forbidden from reading private diagnostic reports');
 
+  const pdfReportRes = await fetch(`${API_BASE}/pdf/report/rep-1`, {
+    headers: { Authorization: `Bearer ${patientToken}` },
+  });
+  assert(pdfReportRes.status === 200, '6.2 Patient downloads authorized medical summary report as formatted PDF');
+
   // WORKFLOW 7: Admin dashboard updates from actual stored records
   console.log('\n▶ Workflow 7: Admin Dashboard Metrics Verification');
   const adminStatsRes = await fetch(`${API_BASE}/admin/stats`, {
@@ -154,6 +169,12 @@ async function runLiveAudit() {
   });
   const adminStatsData = await adminStatsRes.json() as any;
   assert(adminStatsRes.status === 200 && adminStatsData.data?.totalCamps !== undefined, '7.1 Admin dashboard stats endpoint returns real metrics');
+
+  const forecastRes = await fetch(`${API_BASE}/analytics/forecast`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
+  const forecastData = await forecastRes.json() as any;
+  assert(forecastRes.status === 200 && forecastData.data?.projectedAttendanceNextMonth !== undefined, '7.2 Admin retrieves resource demand & staffing forecast based on historical trends');
 
   // WORKFLOW 8: Inventory, referrals, follow-ups, and notifications
   console.log('\n▶ Workflow 8: Inventory Oversight & Notification Security');
@@ -232,3 +253,4 @@ runLiveAudit().catch((err) => {
   console.error('Fatal audit error:', err);
   process.exit(1);
 });
+
