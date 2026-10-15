@@ -145,6 +145,7 @@ model User {
   inventoryTransactions  InventoryTransaction[]
   passwordResetTokens    PasswordResetToken[]
 
+  @@index([role])
   @@map("users")
 }
 
@@ -178,6 +179,8 @@ model Camp {
   campServices     CampService[]
   staffAssignments StaffAssignment[]
 
+  @@index([status, startDate])
+  @@index([location])
   @@map("camps")
 }
 
@@ -204,6 +207,9 @@ model Appointment {
   queueTokenRef QueueToken?
 
   @@unique([patientId, campId, date])
+  @@index([campId, date])
+  @@index([status])
+  @@index([patientId])
   @@map("appointments")
 }
 
@@ -279,6 +285,9 @@ model MedicalReport {
   vitalSigns     VitalSign[]
   referrals      Referral[]
 
+  @@index([patientId])
+  @@index([campId])
+  @@index([status])
   @@map("medical_reports")
 }
 

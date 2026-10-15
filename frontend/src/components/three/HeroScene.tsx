@@ -301,9 +301,9 @@ const SceneContent: React.FC<{ reducedMotion: boolean }> = ({ reducedMotion }) =
       <pointLight position={[0, -3, 2]} intensity={0.6} color="#38bdf8" />
       <spotLight position={[0, 6, 2]} intensity={0.9} color="#ffffff" angle={0.5} penumbra={0.7} />
 
-      <Stars radius={60} depth={40} count={1600} factor={3} saturation={0.2} fade speed={reducedMotion ? 0 : 0.8} />
+      <Stars radius={50} depth={30} count={600} factor={2.5} saturation={0.1} fade speed={reducedMotion ? 0 : 0.6} />
 
-      <Float speed={reducedMotion ? 0 : 1.5} rotationIntensity={0.2} floatIntensity={0.3}>
+      <Float speed={reducedMotion ? 0 : 1.2} rotationIntensity={0.15} floatIntensity={0.25}>
         <InteractiveMedicalCross reducedMotion={reducedMotion} />
       </Float>
 
@@ -315,7 +315,7 @@ const SceneContent: React.FC<{ reducedMotion: boolean }> = ({ reducedMotion }) =
         enableZoom={false}
         enablePan={false}
         autoRotate={!reducedMotion}
-        autoRotateSpeed={0.4}
+        autoRotateSpeed={0.35}
         maxPolarAngle={Math.PI / 2 + 0.05}
         minPolarAngle={Math.PI / 4}
       />
@@ -331,9 +331,15 @@ export const HeroScene: React.FC<{ className?: string }> = ({ className = '' }) 
     <div className={`w-full h-full relative ${className}`}>
       <ThreeErrorBoundary>
         <Canvas
-          shadows
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          shadows={false}
+          dpr={[1, 1.5]}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: 'high-performance',
+            stencil: false,
+            depth: true,
+          }}
           camera={{ position: [0, 0.4, 5.2], fov: 46 }}
           style={{ background: 'transparent' }}
         >
