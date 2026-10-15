@@ -61,3 +61,4 @@ export const inventoryTransactionSchema = z.object({
     type: z.enum(['STOCK_IN', 'DISPENSED', 'EXPIRED', 'ADJUSTMENT']),
   }),
 });
+

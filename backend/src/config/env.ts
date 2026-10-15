@@ -44,3 +44,4 @@ try {
 
 export const env = parsedEnv;
 export default env;
+

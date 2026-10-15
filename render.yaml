@@ -36,3 +36,4 @@ databases:
     region: singapore
     plan: free
     ipAllowList: []
+

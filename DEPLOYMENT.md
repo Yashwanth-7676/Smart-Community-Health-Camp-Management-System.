@@ -168,3 +168,4 @@ Expected output: **47 OF 47 TESTS PASSED (0 FAILED)**.
 3. **Database Connection Timeout (`P1001`)**:
    - Verify your database host allows external connections (IP allowlist `0.0.0.0/0` on Supabase/Neon).
    - Ensure `sslmode=require` is present in the connection string.
+

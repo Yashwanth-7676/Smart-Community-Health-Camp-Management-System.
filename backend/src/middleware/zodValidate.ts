@@ -34,3 +34,4 @@ export const validateZod = (schema: AnyZodObject) => {
 };
 
 export default validateZod;
+
