@@ -21,11 +21,13 @@ import {
   Sparkles,
   Stethoscope,
 } from 'lucide-react';
+import { DemoCredentialsModal } from '@/components/common/DemoCredentialsModal';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -109,6 +111,14 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action Icons & Auth */}
           <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => setDemoModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/60 shadow-sm transition-all"
+              title="View presentation accounts & quick switch"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-500 animate-pulse" />
+              <span>Demo Mode</span>
+            </button>
             <LanguageToggle />
             <ThemeToggle />
 
@@ -267,26 +277,43 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex gap-3">
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center py-2.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200"
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setDemoModalOpen(true);
+                  }}
+                  className="w-full text-center py-2.5 text-xs font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 rounded-xl flex items-center justify-center gap-2"
                 >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center py-2.5 text-xs font-bold bg-cyan-600 text-white rounded-xl shadow-md"
-                >
-                  Register
-                </Link>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Demo Mode Quick Switch</span>
+                </button>
+                <div className="flex gap-3">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2.5 text-xs font-bold border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2.5 text-xs font-bold bg-cyan-600 text-white rounded-xl shadow-md"
+                  >
+                    Register
+                  </Link>
+                </div>
               </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      <DemoCredentialsModal
+        isOpen={demoModalOpen}
+        onClose={() => setDemoModalOpen(false)}
+      />
     </nav>
   );
 };

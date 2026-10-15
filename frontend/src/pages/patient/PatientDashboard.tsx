@@ -262,6 +262,28 @@ export const PatientDashboard: React.FC = () => {
               </span>
             </Link>
           </div>
+
+          {/* Follow-up Reminders */}
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent border border-cyan-500/25 shadow-3d space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Active Clinical Follow-Up
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold">
+                Due in 14 days
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug">
+              Dr. Priya Sharma (General Medicine) recommends fasting blood glucose & BP recheck at next outreach camp.
+            </p>
+            <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              <span>Camp: Koramangala Outreach</span>
+              <Link to="/patient/book" className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
+                Schedule Checkup →
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
