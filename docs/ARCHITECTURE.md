@@ -131,3 +131,4 @@ graph TD
   - `Appointment([campId, date], [status], [patientId])`: Optimizes slot availability checks and queue lookups.
   - `User([role])`: Accelerates role-based directory queries.
   - `MedicalReport([patientId], [campId], [status])`: Enforces fast ownership lookups for patient report access.
+

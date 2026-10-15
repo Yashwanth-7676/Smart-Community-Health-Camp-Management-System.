@@ -12,6 +12,7 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/', getInventoryByCamp);
 router.get('/alerts/low-stock', getLowStockAlerts);
 router.get('/:campId', getInventoryByCamp);
 router.post('/:campId', authorize('ADMIN', 'DOCTOR'), addInventoryItem);

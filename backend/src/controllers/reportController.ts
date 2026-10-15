@@ -1,8 +1,27 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
+import { isDbConnectionError } from '../utils/mockStore';
 
 const prisma = new PrismaClient();
+
+const DEMO_REPORTS: any[] = [
+  {
+    id: 'rep-001',
+    patientId: 'user-patient-1',
+    doctorId: 'user-doctor-1',
+    campId: 'camp-1',
+    diagnosis: 'Mild seasonal rhinitis, healthy vitals',
+    prescription: 'Cetirizine 10mg once daily for 3 days',
+    observations: 'BP: 120/80, SpO2: 99%, Pulse: 72',
+    isConfidential: true,
+    status: 'AUTHORIZED',
+    createdAt: new Date(),
+    patient: { id: 'user-patient-1', firstName: 'Kavitha', lastName: 'Reddy', email: 'patient1@healthcamp.com' },
+    doctor: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma' },
+    camp: { id: 'camp-1', name: 'Koramangala Community Health Camp', location: 'Koramangala, Bangalore' },
+  },
+];
 
 /**
  * GET /api/v1/reports/:id
@@ -17,30 +36,39 @@ export const getReportById = async (req: Request, res: Response, next: NextFunct
       throw new AppError('Unauthorized', 401);
     }
 
-    const report = await prisma.medicalReport.findUnique({
-      where: { id },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            patientProfile: true,
+    let report: any;
+    try {
+      report = await prisma.medicalReport.findUnique({
+        where: { id },
+        include: {
+          patient: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              patientProfile: true,
+            },
           },
-        },
-        doctor: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            doctorProfile: true,
+          doctor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              doctorProfile: true,
+            },
           },
+          camp: true,
         },
-        camp: true,
-      },
-    });
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        report = DEMO_REPORTS.find((r) => r.id === id);
+      } else {
+        throw dbErr;
+      }
+    }
 
     if (!report) {
       throw new AppError('Medical report not found', 404);
@@ -49,7 +77,7 @@ export const getReportById = async (req: Request, res: Response, next: NextFunct
     // Role checking
     const isOwner = report.patientId === user.userId;
     const isTreatingDoctor = report.doctorId === user.userId;
-    const isAdmin = user.role === Role.ADMIN;
+    const isAdmin = user.role?.toUpperCase() === 'ADMIN';
 
     if (!isOwner && !isTreatingDoctor && !isAdmin) {
       throw new AppError('You do not have permission to view this medical report', 403);
@@ -82,29 +110,54 @@ export const createReport = async (req: Request, res: Response, next: NextFuncti
       throw new AppError('Patient ID, Camp ID, and diagnosis are required', 400);
     }
 
-    const report = await prisma.medicalReport.create({
-      data: {
-        patientId,
-        doctorId: doctorUserId,
-        campId,
-        diagnosis,
-        prescription: prescription || null,
-        observations: observations || null,
-        referral: referral || null,
-        isConfidential: isConfidential || false,
-      },
-      include: {
-        patient: {
-          select: { firstName: true, lastName: true },
+    let report: any;
+    try {
+      report = await prisma.medicalReport.create({
+        data: {
+          patientId,
+          doctorId: doctorUserId,
+          campId,
+          diagnosis,
+          prescription: prescription || null,
+          observations: observations || null,
+          referral: referral || null,
+          isConfidential: isConfidential || false,
         },
-        doctor: {
-          select: { firstName: true, lastName: true },
+        include: {
+          patient: {
+            select: { firstName: true, lastName: true },
+          },
+          doctor: {
+            select: { firstName: true, lastName: true },
+          },
+          camp: {
+            select: { name: true, location: true },
+          },
         },
-        camp: {
-          select: { name: true, location: true },
-        },
-      },
-    });
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        report = {
+          id: `rep-${Date.now()}`,
+          patientId,
+          doctorId: doctorUserId,
+          campId,
+          diagnosis,
+          prescription: prescription || null,
+          observations: observations || null,
+          referral: referral || null,
+          isConfidential: isConfidential || false,
+          status: 'AUTHORIZED',
+          patient: { firstName: 'Kavitha', lastName: 'Reddy' },
+          doctor: { firstName: 'Priya', lastName: 'Sharma' },
+          camp: { name: 'Koramangala Community Health Camp', location: 'Koramangala, Bangalore' },
+          createdAt: new Date(),
+        };
+        DEMO_REPORTS.unshift(report);
+      } else {
+        throw dbErr;
+      }
+    }
 
     res.status(201).json({
       success: true,

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient, Role, CampStatus } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
+import { isDbConnectionError, DEMO_CAMPS, DEMO_USERS, DEMO_APPOINTMENTS, DEMO_INVENTORY } from '../utils/mockStore';
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,23 @@ export const getAdminStats = async (_req: Request, res: Response, next: NextFunc
       },
     });
   } catch (error) {
+    if (isDbConnectionError(error)) {
+      res.json({
+        success: true,
+        message: 'Admin stats retrieved successfully (demonstration mode)',
+        data: {
+          totalCamps: DEMO_CAMPS.length,
+          activeCamps: DEMO_CAMPS.filter((c) => c.status === 'UPCOMING' || c.status === 'ONGOING').length,
+          totalPatients: DEMO_USERS.filter((u) => u.role === 'PATIENT').length,
+          totalDoctors: DEMO_USERS.filter((u) => u.role === 'DOCTOR').length,
+          totalVolunteers: DEMO_USERS.filter((u) => u.role === 'VOLUNTEER').length,
+          totalAppointments: DEMO_APPOINTMENTS.length,
+          completedAppointments: DEMO_APPOINTMENTS.filter((a) => a.status === 'COMPLETED').length,
+          lowStockItems: DEMO_INVENTORY.filter((i) => i.quantity <= i.lowStockThreshold).length,
+        },
+      });
+      return;
+    }
     next(error);
   }
 };
@@ -107,6 +125,20 @@ export const getAdminCamps = async (req: Request, res: Response, next: NextFunct
       },
     });
   } catch (error) {
+    if (isDbConnectionError(error)) {
+      res.json({
+        success: true,
+        message: 'Camps retrieved (demonstration mode)',
+        data: DEMO_CAMPS,
+        meta: {
+          total: DEMO_CAMPS.length,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        },
+      });
+      return;
+    }
     next(error);
   }
 };
@@ -146,6 +178,34 @@ export const createCampAdmin = async (req: Request, res: Response, next: NextFun
       data: camp,
     });
   } catch (error) {
+    if (isDbConnectionError(error)) {
+      const mockCamp = {
+        id: `camp-admin-${Date.now()}`,
+        name: req.body.name,
+        location: req.body.location,
+        address: req.body.address,
+        latitude: req.body.latitude ? parseFloat(req.body.latitude) : 12.9716,
+        longitude: req.body.longitude ? parseFloat(req.body.longitude) : 77.5946,
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate),
+        capacity: parseInt(req.body.capacity, 10),
+        registered: 0,
+        status: 'UPCOMING',
+        services: req.body.services || [],
+        description: req.body.description || null,
+        createdById: req.user?.userId || 'admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        _count: { appointments: 0, inventory: 0 },
+      };
+      DEMO_CAMPS.unshift(mockCamp as any);
+      res.status(201).json({
+        success: true,
+        message: 'Camp created successfully (demonstration mode)',
+        data: mockCamp,
+      });
+      return;
+    }
     next(error);
   }
 };
@@ -208,6 +268,21 @@ export const getAdminUsers = async (req: Request, res: Response, next: NextFunct
       },
     });
   } catch (error) {
+    if (isDbConnectionError(error)) {
+      const sanitized = DEMO_USERS.map(({ passwordHash, ...rest }) => rest);
+      res.json({
+        success: true,
+        message: 'Users retrieved (demonstration mode)',
+        data: sanitized,
+        meta: {
+          total: sanitized.length,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        },
+      });
+      return;
+    }
     next(error);
   }
 };

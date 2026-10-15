@@ -139,3 +139,4 @@ sequenceDiagram
    - **Camp Capacity Utilization**: Chart reflecting turnout vs venue capacity.
    - **Audit Logs**: Navigate to `/admin/audit` to inspect immutable log entries for all actions performed during the demonstration.
 3. Click **Export Executive Report** to download the signed text summary certificate.
+

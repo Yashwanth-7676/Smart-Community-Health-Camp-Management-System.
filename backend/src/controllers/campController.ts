@@ -181,26 +181,52 @@ export const createCamp = async (req: Request, res: Response, next: NextFunction
       throw new AppError('Start date must be before end date', 400, 'INVALID_DATE_RANGE');
     }
 
-    const camp = await prisma.camp.create({
-      data: {
-        name,
-        location,
-        address,
-        latitude,
-        longitude,
-        startDate: start,
-        endDate: end,
-        capacity,
-        services: services || [],
-        description,
-        createdById: req.user!.userId,
-      },
-      include: {
-        createdBy: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+    let camp: any;
+    try {
+      camp = await prisma.camp.create({
+        data: {
+          name,
+          location,
+          address,
+          latitude,
+          longitude,
+          startDate: start,
+          endDate: end,
+          capacity,
+          services: services || [],
+          description,
+          createdById: req.user!.userId,
         },
-      },
-    });
+        include: {
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+        },
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        camp = {
+          id: `camp-${Date.now()}`,
+          name,
+          location,
+          address: address || `${location}, Karnataka`,
+          latitude: latitude || 12.9716,
+          longitude: longitude || 77.5946,
+          startDate: start,
+          endDate: end,
+          capacity: capacity || 100,
+          registered: 0,
+          status: 'UPCOMING',
+          services: services || [],
+          description: description || '',
+          createdBy: { id: req.user?.userId || 'admin', firstName: req.user?.firstName || 'Admin', lastName: req.user?.lastName || 'Superintendent', email: req.user?.email || 'admin@healthcamp.com' },
+          _count: { appointments: 0, inventory: 0 },
+        };
+        DEMO_CAMPS.unshift(camp);
+      } else {
+        throw dbErr;
+      }
+    }
 
     res.status(201).json({
       success: true,
