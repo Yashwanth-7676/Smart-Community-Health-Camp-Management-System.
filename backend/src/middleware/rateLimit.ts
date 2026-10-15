@@ -1,11 +1,22 @@
 import rateLimit from 'express-rate-limit';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+// Helper to check if request is coming from local loopback
+const isLoopback = (req: any): boolean => {
+  const ip = req.ip || req.connection?.remoteAddress || '';
+  return ip.includes('127.0.0.1') || ip.includes('::1') || ip === 'localhost';
+};
+
 /**
- * General API rate limiter: 100 requests per 15 minutes per IP
+ * General API rate limiter
+ * In development, loopback requests are allowed without restriction.
+ * In production, configured by RATE_LIMIT_MAX or defaults to 1000 per 15m.
  */
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: isDev ? 10000 : parseInt(process.env.RATE_LIMIT_MAX || '1000', 10),
+  skip: (req) => isDev && isLoopback(req),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -16,11 +27,13 @@ export const generalLimiter = rateLimit({
 });
 
 /**
- * Auth rate limiter: 15 attempts per 15 minutes per IP
+ * Auth rate limiter
+ * In development, generous limit to prevent blocking during testing.
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: isDev ? 1000 : 30,
+  skip: (req) => isDev && isLoopback(req),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -31,11 +44,12 @@ export const authLimiter = rateLimit({
 });
 
 /**
- * AI Assistant rate limiter: 25 requests per 10 minutes per IP
+ * AI Assistant rate limiter
  */
 export const aiLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 25,
+  max: isDev ? 500 : 50,
+  skip: (req) => isDev && isLoopback(req),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -44,4 +58,5 @@ export const aiLimiter = rateLimit({
     code: 'AI_RATE_LIMIT_EXCEEDED',
   },
 });
+
 
