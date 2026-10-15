@@ -26,6 +26,7 @@ import aiRoutes from './routes/ai';
 import consentRoutes from './routes/consent';
 import analyticsRoutes from './routes/analytics';
 import auditRoutes from './routes/audit';
+import docsRoutes from './routes/docs';
 
 const app: Application = express();
 
@@ -129,6 +130,7 @@ app.use('/api', generalLimiter);
   app.use(`${prefix}/consent`, consentRoutes);
   app.use(`${prefix}/analytics`, analyticsRoutes);
   app.use(`${prefix}/audit`, auditRoutes);
+  app.use(`${prefix}/docs`, docsRoutes);
 });
 
 // ========================

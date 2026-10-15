@@ -1,0 +1,38 @@
+services:
+  # Backend API Web Service
+  - type: web
+    name: healthcamp-api
+    env: node
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: healthcamp-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://healthcamp.vercel.app,http://localhost:3000
+
+databases:
+  # Managed PostgreSQL Database
+  - name: healthcamp-db
+    databaseName: healthcamp
+    user: healthcamp_user
+    region: singapore
+    plan: free
+    ipAllowList: []
