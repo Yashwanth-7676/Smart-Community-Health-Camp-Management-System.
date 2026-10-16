@@ -62,3 +62,41 @@ export const inventoryTransactionSchema = z.object({
   }),
 });
 
+export const createFollowUpSchema = z.object({
+  body: z.object({
+    patientId: z.string().min(1, 'Patient ID is required'),
+    campId: z.string().min(1, 'Camp ID is required'),
+    scheduledDate: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid follow-up date' }),
+    notes: z.string().optional(),
+    priority: z.enum(['ROUTINE', 'URGENT', 'HIGH']).default('ROUTINE'),
+  }),
+});
+
+export const inventoryTransferSchema = z.object({
+  body: z.object({
+    fromCampId: z.string().min(1, 'Source Camp ID is required'),
+    toCampId: z.string().min(1, 'Destination Camp ID is required'),
+    medicineName: z.string().min(2, 'Medicine name is required'),
+    batchNumber: z.string().min(1, 'Batch number is required'),
+    quantity: z.number().int().positive('Transfer quantity must be greater than zero'),
+    reason: z.string().min(5, 'Clinical or operational reason is required'),
+    type: z.enum(['TRANSFER', 'ADJUSTMENT', 'WRITE_OFF']).default('TRANSFER'),
+  }),
+});
+
+export const confirmReportReaderSchema = z.object({
+  body: z.object({
+    patientId: z.string().min(1, 'Patient ID is required'),
+    campId: z.string().min(1, 'Camp ID is required'),
+    consentGranted: z.literal(true, {
+      errorMap: () => ({ message: 'Explicit patient consent is required before saving extracted findings' }),
+    }),
+    clinicianReviewed: z.literal(true, {
+      errorMap: () => ({ message: 'Clinician confirmation is mandatory to link extracted findings' }),
+    }),
+    findings: z.record(z.any()),
+    notes: z.string().optional(),
+  }),
+});
+
+

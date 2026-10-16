@@ -41,6 +41,8 @@ const ConsentManagement = lazy(() => import('@/pages/admin/ConsentManagement'));
 const Inventory = lazy(() => import('@/pages/Inventory'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
+const DigitalTwinPage = lazy(() => import('@/pages/DigitalTwinPage'));
+const MedicalReportReaderPage = lazy(() => import('@/pages/MedicalReportReaderPage'));
 
 export const App: React.FC = () => {
   return (
@@ -65,6 +67,7 @@ export const App: React.FC = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth/forgot-password" element={<Navigate to="/forgot-password" replace />} />
             <Route path="/auth/reset-password" element={<Navigate to="/reset-password" replace />} />
+            <Route path="/digital-twin" element={<DigitalTwinPage />} />
             <Route path="/access-denied" element={<AccessDenied />} />
           </Route>
 
@@ -240,10 +243,26 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/reports/reader"
+              element={
+                <ProtectedRoute>
+                  <MedicalReportReaderPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/notifications"
               element={
                 <ProtectedRoute>
                   <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/digital-twin"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'doctor']}>
+                  <DigitalTwinPage />
                 </ProtectedRoute>
               }
             />

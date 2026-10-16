@@ -27,6 +27,8 @@ import consentRoutes from './routes/consent';
 import analyticsRoutes from './routes/analytics';
 import auditRoutes from './routes/audit';
 import docsRoutes from './routes/docs';
+import digitalTwinRoutes from './routes/digitalTwin';
+import followUpRoutes from './routes/followUps';
 
 const app: Application = express();
 
@@ -131,6 +133,8 @@ app.use('/api', generalLimiter);
   app.use(`${prefix}/analytics`, analyticsRoutes);
   app.use(`${prefix}/audit`, auditRoutes);
   app.use(`${prefix}/docs`, docsRoutes);
+  app.use(`${prefix}/digital-twin`, digitalTwinRoutes);
+  app.use(`${prefix}/follow-ups`, followUpRoutes);
 });
 
 // ========================

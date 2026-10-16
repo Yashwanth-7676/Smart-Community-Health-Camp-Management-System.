@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
+import { FollowUpManager } from '@/components/followups/FollowUpManager';
 
 export const DoctorDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -100,6 +101,15 @@ export const DoctorDashboard: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Link to="/reports/reader">
+              <Button
+                variant="outline"
+                className="border-cyan-400/40 text-cyan-300 hover:bg-cyan-950/60 text-xs sm:text-sm font-semibold"
+                leftIcon={<FileText className="w-4 h-4 text-cyan-400" />}
+              >
+                AI Report Reader
+              </Button>
+            </Link>
             <Link to="/doctor/reports">
               <Button
                 variant="outline"
@@ -229,6 +239,9 @@ export const DoctorDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Follow-Up Management Section */}
+      <FollowUpManager />
 
       {/* Checkup Clinical Modal */}
       {activeCheckupPatient && (

@@ -8,6 +8,7 @@ import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { sanitizeUser } from '../utils/helpers';
 import { LoginDto, RegisterDto } from '../types';
 import { DEMO_USERS, isDbConnectionError } from '../utils/mockStore';
+import { recordFailedLoginAttempt } from '../middleware/auditLog';
 
 const prisma = new PrismaClient();
 
@@ -68,6 +69,7 @@ export const login = [
       }
 
       if (!user) {
+        recordFailedLoginAttempt(email, (req.ip || (req.headers['x-forwarded-for'] as string)) || '127.0.0.1');
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
 
@@ -79,6 +81,7 @@ export const login = [
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
+        recordFailedLoginAttempt(email, (req.ip || (req.headers['x-forwarded-for'] as string)) || '127.0.0.1');
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
 

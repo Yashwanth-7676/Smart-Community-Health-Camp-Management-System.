@@ -269,3 +269,412 @@ export const DEMO_REPORTS = [
   },
 ];
 
+export interface DemoFollowUp {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  campId: string;
+  scheduledDate: Date;
+  status: 'PENDING' | 'SCHEDULED' | 'COMPLETED' | 'MISSED';
+  notes?: string;
+  priority: 'ROUTINE' | 'URGENT' | 'HIGH';
+  consentGranted: boolean;
+  notificationDeliveryStatus: 'PENDING_CONFIRMATION' | 'DELIVERED' | 'FAILED' | 'NOT_SENT';
+  retryCount: number;
+  lastAttemptAt?: Date;
+  patient?: { id: string; firstName: string; lastName: string; phone?: string; email: string };
+  doctor?: { id: string; firstName: string; lastName: string };
+  camp?: { id: string; name: string; location: string };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const DEMO_FOLLOW_UPS: DemoFollowUp[] = [
+  {
+    id: 'fu-1',
+    patientId: 'user-patient-1',
+    doctorId: 'user-doctor-1',
+    campId: 'camp-1',
+    scheduledDate: new Date(Date.now() + 5 * 86400000), // +5 days
+    status: 'SCHEDULED',
+    notes: 'Review HbA1c lab report and titrate Metformin dosage if needed.',
+    priority: 'HIGH',
+    consentGranted: true,
+    notificationDeliveryStatus: 'DELIVERED',
+    retryCount: 0,
+    lastAttemptAt: new Date(Date.now() - 3600000),
+    patient: { id: 'user-patient-1', firstName: 'Kavitha', lastName: 'Reddy', email: 'patient1@healthcamp.com', phone: '+91-9876543217' },
+    doctor: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma' },
+    camp: { id: 'camp-1', name: 'Koramangala Community Health Camp', location: 'Koramangala' },
+    createdAt: new Date(Date.now() - 86400000),
+    updatedAt: new Date(Date.now() - 3600000),
+  },
+  {
+    id: 'fu-2',
+    patientId: 'user-patient-1',
+    doctorId: 'user-doctor-1',
+    campId: 'camp-2',
+    scheduledDate: new Date(Date.now() - 2 * 86400000), // -2 days
+    status: 'MISSED',
+    notes: 'Hypertension follow-up visit. Patient did not attend scheduled check-in.',
+    priority: 'URGENT',
+    consentGranted: true,
+    notificationDeliveryStatus: 'FAILED',
+    retryCount: 2,
+    lastAttemptAt: new Date(Date.now() - 7200000),
+    patient: { id: 'user-patient-1', firstName: 'Kavitha', lastName: 'Reddy', email: 'patient1@healthcamp.com', phone: '+91-9876543217' },
+    doctor: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma' },
+    camp: { id: 'camp-2', name: 'Indiranagar Health Awareness Camp', location: 'Indiranagar' },
+    createdAt: new Date(Date.now() - 3 * 86400000),
+    updatedAt: new Date(Date.now() - 7200000),
+  },
+  {
+    id: 'fu-3',
+    patientId: 'user-patient-1',
+    doctorId: 'user-doctor-1',
+    campId: 'camp-3',
+    scheduledDate: new Date(Date.now() - 10 * 86400000),
+    status: 'COMPLETED',
+    notes: 'Post-ophthalmology eye drop titration completed. Vision acuity stable at 6/9.',
+    priority: 'ROUTINE',
+    consentGranted: true,
+    notificationDeliveryStatus: 'DELIVERED',
+    retryCount: 0,
+    lastAttemptAt: new Date(Date.now() - 10 * 86400000),
+    patient: { id: 'user-patient-1', firstName: 'Kavitha', lastName: 'Reddy', email: 'patient1@healthcamp.com', phone: '+91-9876543217' },
+    doctor: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma' },
+    camp: { id: 'camp-3', name: 'Jayanagar Free Medical Camp', location: 'Jayanagar' },
+    createdAt: new Date(Date.now() - 12 * 86400000),
+    updatedAt: new Date(Date.now() - 10 * 86400000),
+  },
+];
+
+export interface DemoNotificationAttempt {
+  id: string;
+  followUpId: string;
+  attemptNumber: number;
+  channel: 'SMS' | 'EMAIL' | 'IN_APP';
+  recipientMasked: string;
+  status: 'DELIVERED' | 'FAILED' | 'PENDING_CONFIRMATION';
+  providerMessageId: string;
+  failureReason?: string;
+  timestamp: Date;
+}
+
+export const DEMO_NOTIFICATION_HISTORY: DemoNotificationAttempt[] = [
+  {
+    id: 'notif-att-1',
+    followUpId: 'fu-1',
+    attemptNumber: 1,
+    channel: 'SMS',
+    recipientMasked: '+91-98****3217',
+    status: 'DELIVERED',
+    providerMessageId: 'SMS-GATEWAY-IN-98124',
+    timestamp: new Date(Date.now() - 3600000),
+  },
+  {
+    id: 'notif-att-2',
+    followUpId: 'fu-2',
+    attemptNumber: 1,
+    channel: 'SMS',
+    recipientMasked: '+91-98****3217',
+    status: 'FAILED',
+    providerMessageId: 'SMS-GATEWAY-IN-98011',
+    failureReason: 'Carrier network unreachable (Error 408: Subscriber temporary outage)',
+    timestamp: new Date(Date.now() - 14400000),
+  },
+  {
+    id: 'notif-att-3',
+    followUpId: 'fu-2',
+    attemptNumber: 2,
+    channel: 'EMAIL',
+    recipientMasked: 'p***1@healthcamp.com',
+    status: 'FAILED',
+    providerMessageId: 'SMTP-BOUNCE-319',
+    failureReason: 'Recipient mailbox quota exceeded',
+    timestamp: new Date(Date.now() - 7200000),
+  },
+];
+
+export interface DemoInventoryTransfer {
+  id: string;
+  fromCampId: string;
+  toCampId: string;
+  medicineName: string;
+  batchNumber: string;
+  quantity: number;
+  reason: string;
+  type: 'TRANSFER' | 'ADJUSTMENT' | 'WRITE_OFF';
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  requestedById: string;
+  approvedById?: string;
+  rejectionReason?: string;
+  requestedBy?: { id: string; firstName: string; lastName: string; role: string };
+  approvedBy?: { id: string; firstName: string; lastName: string; role: string };
+  fromCamp?: { id: string; name: string };
+  toCamp?: { id: string; name: string };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const DEMO_INVENTORY_TRANSFERS: DemoInventoryTransfer[] = [
+  {
+    id: 'trf-1',
+    fromCampId: 'camp-1',
+    toCampId: 'camp-2',
+    medicineName: 'Paracetamol 500mg',
+    batchNumber: 'BAT-2026-08',
+    quantity: 150,
+    reason: 'Emergency surge in viral fever screenings at Indiranagar Camp.',
+    type: 'TRANSFER',
+    status: 'APPROVED',
+    requestedById: 'user-doctor-1',
+    approvedById: 'user-admin-1',
+    requestedBy: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma', role: 'DOCTOR' },
+    approvedBy: { id: 'user-admin-1', firstName: 'Rajesh', lastName: 'Kumar', role: 'ADMIN' },
+    fromCamp: { id: 'camp-1', name: 'Koramangala Community Health Camp' },
+    toCamp: { id: 'camp-2', name: 'Indiranagar Health Awareness Camp' },
+    createdAt: new Date(Date.now() - 86400000),
+    updatedAt: new Date(Date.now() - 72000000),
+  },
+  {
+    id: 'trf-2',
+    fromCampId: 'camp-2',
+    toCampId: 'camp-4',
+    medicineName: 'ORS Sachet',
+    batchNumber: 'BAT-2026-03',
+    quantity: 50,
+    reason: 'Inter-camp stock rebalance for upcoming heatwave hydration station.',
+    type: 'TRANSFER',
+    status: 'PENDING_APPROVAL',
+    requestedById: 'user-doctor-1',
+    requestedBy: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma', role: 'DOCTOR' },
+    fromCamp: { id: 'camp-2', name: 'Indiranagar Health Awareness Camp' },
+    toCamp: { id: 'camp-4', name: 'Whitefield Digital Health Camp' },
+    createdAt: new Date(Date.now() - 3600000),
+    updatedAt: new Date(Date.now() - 3600000),
+  },
+];
+
+export interface DemoSecurityAlert {
+  id: string;
+  type: 'BRUTE_FORCE_SUSPECTED' | 'UNUSUAL_ACCESS_PATTERN' | 'UNAUTHORIZED_RECORD_ACCESS' | 'BULK_EXPORT_DETECTED';
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  title: string;
+  description: string;
+  targetEntity: string;
+  sourceIp: string;
+  actorUserId?: string;
+  resolved: boolean;
+  resolvedAt?: Date;
+  resolvedById?: string;
+  timestamp: Date;
+}
+
+export const DEMO_SECURITY_ALERTS: DemoSecurityAlert[] = [
+  {
+    id: 'sec-alert-1',
+    type: 'BRUTE_FORCE_SUSPECTED',
+    severity: 'HIGH',
+    title: 'Repeated Failed Login Surge Detected',
+    description: '5 consecutive authentication failures within 3 minutes targeting user account admin@healthcamp.com.',
+    targetEntity: 'Auth::Login',
+    sourceIp: '192.168.1.104',
+    resolved: false,
+    timestamp: new Date(Date.now() - 1800000),
+  },
+  {
+    id: 'sec-alert-2',
+    type: 'UNUSUAL_ACCESS_PATTERN',
+    severity: 'MEDIUM',
+    title: 'Off-Hours Administrative Privilege Verification',
+    description: 'Administrative role permission review initiated outside scheduled operational clinic hours (02:15 AM).',
+    targetEntity: 'Admin::Roles',
+    sourceIp: '10.0.4.12',
+    actorUserId: 'user-admin-1',
+    resolved: true,
+    resolvedAt: new Date(Date.now() - 3600000),
+    resolvedById: 'user-admin-1',
+    timestamp: new Date(Date.now() - 86400000),
+  },
+];
+
+export interface DemoDigitalTwinArea {
+  areaId: string;
+  areaName: string;
+  district: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+    elevation3D: number;
+  };
+  totalCamps: number;
+  historicalAttendance: number;
+  estimatedAttendance: number;
+  isEstimate: boolean;
+  estimationConfidence: number;
+  estimationModel: string;
+  screeningCoverageRate: number; // percentage
+  healthIndex: number; // 0-100 composite
+  resourceUtilizationRate: number; // percentage
+  topHealthConcerns: Array<{ name: string; percentage: number }>;
+  activeDoctorsAssigned: number;
+  criticalMedicineAvailabilityRate: number;
+  privacyThresholdMet: boolean;
+  minimumAggregationCount: number;
+}
+
+export const DEMO_DIGITAL_TWIN_AREAS: DemoDigitalTwinArea[] = [
+  {
+    areaId: 'area-doddaballapura',
+    areaName: 'Doddaballapura Rural Belt',
+    district: 'Bengaluru Rural',
+    coordinates: { lat: 13.2924, lng: 77.5428, elevation3D: 1.4 },
+    totalCamps: 8,
+    historicalAttendance: 1420,
+    estimatedAttendance: 1850,
+    isEstimate: true,
+    estimationConfidence: 91,
+    estimationModel: 'Poisson Seasonal Rural Intake Regression v2.1',
+    screeningCoverageRate: 68.4,
+    healthIndex: 74,
+    resourceUtilizationRate: 84.2,
+    topHealthConcerns: [
+      { name: 'Hypertension', percentage: 32 },
+      { name: 'Type 2 Diabetes Risk', percentage: 24 },
+      { name: 'Visual Refraction Deficit', percentage: 16 },
+      { name: 'Joint & Musculoskeletal', percentage: 12 },
+    ],
+    activeDoctorsAssigned: 12,
+    criticalMedicineAvailabilityRate: 88.5,
+    privacyThresholdMet: true,
+    minimumAggregationCount: 1420,
+  },
+  {
+    areaId: 'area-koramangala',
+    areaName: 'Koramangala Community Zone',
+    district: 'Bengaluru South',
+    coordinates: { lat: 12.9352, lng: 77.6245, elevation3D: 2.1 },
+    totalCamps: 12,
+    historicalAttendance: 2150,
+    estimatedAttendance: 2400,
+    isEstimate: true,
+    estimationConfidence: 94,
+    estimationModel: 'Urban Density Moving Average v3.0',
+    screeningCoverageRate: 82.1,
+    healthIndex: 88,
+    resourceUtilizationRate: 91.0,
+    topHealthConcerns: [
+      { name: 'Sedentary Lifestyle Stress', percentage: 29 },
+      { name: 'Dyslipidemia / Lipid Panel', percentage: 22 },
+      { name: 'Vitamin D Deficiency', percentage: 18 },
+      { name: 'Hypertension', percentage: 15 },
+    ],
+    activeDoctorsAssigned: 18,
+    criticalMedicineAvailabilityRate: 96.0,
+    privacyThresholdMet: true,
+    minimumAggregationCount: 2150,
+  },
+  {
+    areaId: 'area-nelamangala',
+    areaName: 'Nelamangala Outreach Corridor',
+    district: 'Bengaluru Rural',
+    coordinates: { lat: 13.0973, lng: 77.3878, elevation3D: 1.1 },
+    totalCamps: 6,
+    historicalAttendance: 980,
+    estimatedAttendance: 1300,
+    isEstimate: true,
+    estimationConfidence: 87,
+    estimationModel: 'Sparse Demographic Extrapolation v1.8',
+    screeningCoverageRate: 54.2,
+    healthIndex: 69,
+    resourceUtilizationRate: 76.5,
+    topHealthConcerns: [
+      { name: 'Iron Deficiency Anemia', percentage: 27 },
+      { name: 'Hypertension', percentage: 25 },
+      { name: 'Dental Caries', percentage: 21 },
+      { name: 'Pediatric Growth Monitoring', percentage: 14 },
+    ],
+    activeDoctorsAssigned: 8,
+    criticalMedicineAvailabilityRate: 82.0,
+    privacyThresholdMet: true,
+    minimumAggregationCount: 980,
+  },
+  {
+    areaId: 'area-devanahalli',
+    areaName: 'Devanahalli Taluk Cluster',
+    district: 'Bengaluru North',
+    coordinates: { lat: 13.2483, lng: 77.7126, elevation3D: 1.25 },
+    totalCamps: 5,
+    historicalAttendance: 820,
+    estimatedAttendance: 1150,
+    isEstimate: true,
+    estimationConfidence: 89,
+    estimationModel: 'Suburban Transit Population Estimator',
+    screeningCoverageRate: 59.8,
+    healthIndex: 72,
+    resourceUtilizationRate: 71.4,
+    topHealthConcerns: [
+      { name: 'Upper Respiratory Allergy', percentage: 26 },
+      { name: 'Diabetes Screening Needed', percentage: 21 },
+      { name: 'Hypertension', percentage: 19 },
+      { name: 'Dermatological Irritation', percentage: 13 },
+    ],
+    activeDoctorsAssigned: 7,
+    criticalMedicineAvailabilityRate: 85.0,
+    privacyThresholdMet: true,
+    minimumAggregationCount: 820,
+  },
+  {
+    areaId: 'area-indiranagar',
+    areaName: 'Indiranagar Urban Health Hub',
+    district: 'Bengaluru East',
+    coordinates: { lat: 12.9784, lng: 77.6408, elevation3D: 1.85 },
+    totalCamps: 10,
+    historicalAttendance: 1890,
+    estimatedAttendance: 2100,
+    isEstimate: true,
+    estimationConfidence: 93,
+    estimationModel: 'Urban Density Moving Average v3.0',
+    screeningCoverageRate: 79.5,
+    healthIndex: 85,
+    resourceUtilizationRate: 89.2,
+    topHealthConcerns: [
+      { name: 'Hypertension', percentage: 24 },
+      { name: 'Digital Eye Strain', percentage: 20 },
+      { name: 'Type 2 Diabetes', percentage: 18 },
+      { name: 'Orthopedic / Postural Pain', percentage: 16 },
+    ],
+    activeDoctorsAssigned: 15,
+    criticalMedicineAvailabilityRate: 94.0,
+    privacyThresholdMet: true,
+    minimumAggregationCount: 1890,
+  },
+  {
+    areaId: 'area-anekal',
+    areaName: 'Anekal Taluk Outreach',
+    district: 'Bengaluru Urban / Border',
+    coordinates: { lat: 12.7107, lng: 77.6974, elevation3D: 1.35 },
+    totalCamps: 7,
+    historicalAttendance: 1110,
+    estimatedAttendance: 1450,
+    isEstimate: true,
+    estimationConfidence: 88,
+    estimationModel: 'Rural Fringe Epidemiological Index v2.0',
+    screeningCoverageRate: 61.2,
+    healthIndex: 70,
+    resourceUtilizationRate: 79.0,
+    topHealthConcerns: [
+      { name: 'Nutritional & Micronutrient Gap', percentage: 28 },
+      { name: 'Hypertension', percentage: 23 },
+      { name: 'Diabetes Mellitus', percentage: 17 },
+      { name: 'Vision Screening Requirement', percentage: 15 },
+    ],
+    activeDoctorsAssigned: 9,
+    criticalMedicineAvailabilityRate: 86.0,
+    privacyThresholdMet: true,
+    minimumAggregationCount: 1110,
+  },
+];
+
+
