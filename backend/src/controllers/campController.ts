@@ -3,7 +3,7 @@ import { PrismaClient, CampStatus } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { getPagination, buildPaginationMeta } from '../utils/helpers';
 import { CreateCampDto, UpdateCampDto, ListQueryParams } from '../types';
-import { DEMO_CAMPS, isDbConnectionError } from '../utils/mockStore';
+import { DEMO_CAMPS, DEMO_APPOINTMENTS, isDbConnectionError } from '../utils/mockStore';
 
 const prisma = new PrismaClient();
 
@@ -298,20 +298,32 @@ export const deleteCamp = async (req: Request, res: Response, next: NextFunction
   try {
     const { id } = req.params;
 
-    const camp = await prisma.camp.findUnique({ where: { id } });
-    if (!camp) {
-      throw new AppError('Camp not found', 404, 'NOT_FOUND');
-    }
+    try {
+      const camp = await prisma.camp.findUnique({ where: { id } });
+      if (!camp) {
+        throw new AppError('Camp not found', 404, 'NOT_FOUND');
+      }
 
-    if (camp.status === CampStatus.ONGOING) {
-      throw new AppError('Cannot delete an ongoing camp', 400, 'INVALID_OPERATION');
-    }
+      if (camp.status === CampStatus.ONGOING) {
+        throw new AppError('Cannot delete an ongoing camp', 400, 'INVALID_OPERATION');
+      }
 
-    // Soft delete by setting status to CANCELLED
-    await prisma.camp.update({
-      where: { id },
-      data: { status: CampStatus.CANCELLED },
-    });
+      // Soft delete by setting status to CANCELLED
+      await prisma.camp.update({
+        where: { id },
+        data: { status: CampStatus.CANCELLED },
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        const demoCamp = DEMO_CAMPS.find((c) => c.id === id);
+        if (!demoCamp) {
+          throw new AppError('Camp not found', 404, 'NOT_FOUND');
+        }
+        (demoCamp as any).status = 'CANCELLED';
+      } else {
+        throw dbErr;
+      }
+    }
 
     res.json({
       success: true,
@@ -335,32 +347,46 @@ export const getCampAppointments = async (req: Request, res: Response, next: Nex
     const limitNum = parseInt(limit, 10);
     const { skip, take } = getPagination(pageNum, limitNum);
 
-    const camp = await prisma.camp.findUnique({ where: { id } });
-    if (!camp) {
-      throw new AppError('Camp not found', 404, 'NOT_FOUND');
+    let appointments: any[] = [];
+    let total = 0;
+
+    try {
+      const camp = await prisma.camp.findUnique({ where: { id } });
+      if (!camp) {
+        throw new AppError('Camp not found', 404, 'NOT_FOUND');
+      }
+
+      const where: Record<string, unknown> = { campId: id };
+      if (status) where.status = status;
+
+      [appointments, total] = await Promise.all([
+        prisma.appointment.findMany({
+          where,
+          include: {
+            patient: {
+              select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+            },
+            doctor: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+            queueTokenRef: true,
+          },
+          orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
+          skip,
+          take,
+        }),
+        prisma.appointment.count({ where }),
+      ]);
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        let list = DEMO_APPOINTMENTS.filter((a) => a.campId === id);
+        if (status) list = list.filter((a) => a.status.toLowerCase() === (status as string).toLowerCase());
+        total = list.length;
+        appointments = list.slice(skip, skip + take);
+      } else {
+        throw dbErr;
+      }
     }
-
-    const where: Record<string, unknown> = { campId: id };
-    if (status) where.status = status;
-
-    const [appointments, total] = await Promise.all([
-      prisma.appointment.findMany({
-        where,
-        include: {
-          patient: {
-            select: { id: true, firstName: true, lastName: true, email: true, phone: true },
-          },
-          doctor: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-          queueTokenRef: true,
-        },
-        orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
-        skip,
-        take,
-      }),
-      prisma.appointment.count({ where }),
-    ]);
 
     res.json({
       success: true,

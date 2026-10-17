@@ -307,3 +307,4 @@ You can click the **Demo Mode** button directly in the application header to swi
 
 ## 📄 License
 This project is licensed under the **MIT License** for open community healthcare enhancement and educational purposes.
+ 
