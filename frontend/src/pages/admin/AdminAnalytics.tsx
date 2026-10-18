@@ -8,6 +8,7 @@ import { AppointmentStatusChart } from '@/components/charts/AppointmentStatusCha
 import { TrendLineChart } from '@/components/charts/TrendLineChart';
 import { Button } from '@/components/ui/Button';
 import { Download, ShieldCheck, BarChart3, TrendingUp } from 'lucide-react';
+import { PredictiveOperationsCard } from '@/components/analytics/PredictiveOperationsCard';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
 
@@ -69,6 +70,9 @@ export const AdminAnalytics: React.FC = () => {
           <strong>HIPAA/DISHA Compliant:</strong> All charts present anonymized demographic aggregates. Individual patient identifiers and clinical records remain strictly encrypted and confidential.
         </span>
       </div>
+
+      {/* Upgraded Predictive Operations Engine */}
+      <PredictiveOperationsCard campId="camp-1" />
 
       {/* Resource Forecast Section based on stored trends */}
       {forecast && (

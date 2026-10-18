@@ -43,6 +43,10 @@ const Reports = lazy(() => import('@/pages/Reports'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const DigitalTwinPage = lazy(() => import('@/pages/DigitalTwinPage'));
 const MedicalReportReaderPage = lazy(() => import('@/pages/MedicalReportReaderPage'));
+const CommandCenter = lazy(() => import('@/pages/CommandCenter'));
+const HealthEducationPage = lazy(() => import('@/pages/HealthEducationPage'));
+const SharedHealthCardPage = lazy(() => import('@/pages/SharedHealthCardPage'));
+import PWAInstallBanner from '@/components/common/PWAInstallBanner';
 
 export const App: React.FC = () => {
   return (
@@ -68,6 +72,9 @@ export const App: React.FC = () => {
             <Route path="/auth/forgot-password" element={<Navigate to="/forgot-password" replace />} />
             <Route path="/auth/reset-password" element={<Navigate to="/reset-password" replace />} />
             <Route path="/digital-twin" element={<DigitalTwinPage />} />
+            <Route path="/education" element={<HealthEducationPage />} />
+            <Route path="/health-education" element={<HealthEducationPage />} />
+            <Route path="/shared-health-card" element={<SharedHealthCardPage />} />
             <Route path="/access-denied" element={<AccessDenied />} />
           </Route>
 
@@ -266,6 +273,22 @@ export const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/command-center"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'doctor', 'volunteer', 'organizer']}>
+                  <CommandCenter />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/command-center"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <CommandCenter />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           {/* Fallback Catch-all */}
@@ -275,6 +298,9 @@ export const App: React.FC = () => {
 
       {/* Persistent AI Health Assistant */}
       <AIHealthAssistant />
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
     </>
   );
 };

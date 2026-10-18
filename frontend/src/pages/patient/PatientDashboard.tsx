@@ -9,6 +9,7 @@ import { QueueToken } from '@/components/common/QueueToken';
 import { QRCodeDisplay } from '@/components/common/QRCodeDisplay';
 import { LiveQueueDisplay } from '@/components/common/LiveQueueDisplay';
 import { DigitalHealthPassport } from '@/components/common/DigitalHealthPassport';
+import { DigitalHealthCard } from '@/components/passport/DigitalHealthCard';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
@@ -134,6 +135,22 @@ export const PatientDashboard: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Upgraded Digital Health ID & Ephemeral Sharing Pass */}
+      <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-cyan-400" />
+              <span>Digital Health ID & Ephemeral Passes</span>
+            </h2>
+            <p className="text-xs text-slate-400">
+              Flip to view your non-PII verification QR code or issue temporary, revocable clinical access passes.
+            </p>
+          </div>
+        </div>
+        <DigitalHealthCard />
+      </div>
 
       {/* Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">

@@ -1,5 +1,6 @@
 // src/pages/volunteer/VolunteerDashboard.tsx
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { PatientQueueCard } from '@/components/dashboard/PatientQueueCard';
@@ -20,6 +21,7 @@ import {
   Wifi,
   Search,
   Check,
+  Radio,
 } from 'lucide-react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -138,6 +140,16 @@ export const VolunteerDashboard: React.FC = () => {
             >
               Scan / Enter QR Token
             </Button>
+
+            <Link to="/command-center">
+              <Button
+                variant="outline"
+                className="border-indigo-400/40 text-indigo-300 hover:bg-indigo-950/40 text-xs sm:text-sm font-semibold"
+                leftIcon={<Radio className="w-4 h-4 text-indigo-400 animate-pulse" />}
+              >
+                Live Command Center
+              </Button>
+            </Link>
 
             <Button
               variant="secondary"

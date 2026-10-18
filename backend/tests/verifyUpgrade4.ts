@@ -5,6 +5,7 @@ import http from 'http';
 import app from '../src/app';
 import { generateSHID, EPHEMERAL_PASS_STORE, ACCESS_HISTORY_STORE } from '../src/controllers/digitalHealthIdController';
 import { getCampCommandCenterData } from '../src/controllers/commandCenterController';
+import { signAccessToken } from '../src/utils/jwt';
 
 // Helper to execute supertest-like in-memory HTTP requests without external libraries
 function request(appInstance: any) {
@@ -105,26 +106,23 @@ async function runTests() {
     }
   }
 
-  // 1. Authenticate helper to get admin token
+  // 1. Generate test authentication tokens
   const req = request(app);
-  let adminToken = '';
-  let patientToken = '';
-
-  const loginAdminRes = await req.post('/api/v1/auth/login', {
+  const adminToken = signAccessToken({
+    userId: 'user-admin-1',
     email: 'admin@healthcamp.com',
-    password: 'Admin@123',
+    role: 'ADMIN',
+    firstName: 'Rajesh',
+    lastName: 'Kumar',
   });
-  if (loginAdminRes.body?.data?.token) {
-    adminToken = loginAdminRes.body.data.token;
-  }
 
-  const loginPatientRes = await req.post('/api/v1/auth/login', {
+  const patientToken = signAccessToken({
+    userId: 'user-patient-1',
     email: 'patient1@healthcamp.com',
-    password: 'Patient@123',
+    role: 'PATIENT',
+    firstName: 'Kavitha',
+    lastName: 'Reddy',
   });
-  if (loginPatientRes.body?.data?.token) {
-    patientToken = loginPatientRes.body.data.token;
-  }
 
   console.log('📡 MODULE 1: Live Camp Command Center');
 
@@ -258,19 +256,29 @@ async function runTests() {
 
   console.log('\n📊 MODULE 4: Predictive Operations');
 
-  await test('4.1 Insufficient data guard enforces minimum completed camps threshold', async () => {
-    // Verify threshold constant
-    assert.strictEqual(3, 3);
-  });
-
-  await test('4.2 Predictive operations endpoint calculates staffing, supplies, and queue pressure', async () => {
+  await test('4.1 Insufficient data guard enforces minimum completed camps threshold (< 3)', async () => {
     const res = await req.get('/api/v1/analytics/predictive-operations/camp-1', {
       Authorization: `Bearer ${adminToken}`,
     });
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body.success, true);
+    assert.strictEqual(res.body.data.hasSufficientData, false);
     assert.strictEqual(res.body.data.boundaryClassification.type, 'LOGISTICAL_OPERATIONAL_ONLY');
-    assert.ok(res.body.data.attendanceForecast || res.body.data.baselineGuidelines);
+    assert.ok(res.body.data.baselineGuidelines);
+  });
+
+  await test('4.2 Predictive operations calculates staffing, supplies, and queue pressure when data >= 3', async () => {
+    const res = await req.get('/api/v1/analytics/predictive-operations/camp-1?simulateSufficient=true', {
+      Authorization: `Bearer ${adminToken}`,
+    });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.success, true);
+    assert.strictEqual(res.body.data.hasSufficientData, true);
+    assert.strictEqual(res.body.data.boundaryClassification.type, 'LOGISTICAL_OPERATIONAL_ONLY');
+    assert.ok(res.body.data.attendanceForecast.projectedAttendance > 0);
+    assert.ok(Array.isArray(res.body.data.hourlyQueuePressure));
+    assert.ok(Array.isArray(res.body.data.estimatedSupplyRequirements));
+    assert.ok(res.body.data.staffingRecommendations.recommendedDoctors > 0);
   });
 
   console.log('\n📱 MODULE 5: Offline-First PWA');

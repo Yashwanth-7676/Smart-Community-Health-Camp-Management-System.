@@ -22,6 +22,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { DemoCredentialsModal } from '@/components/common/DemoCredentialsModal';
+import { OfflineSyncManager } from '@/components/common/OfflineSyncManager';
 import { useTranslation } from 'react-i18next';
 
 export const Navbar: React.FC = () => {
@@ -55,6 +56,8 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { label: t('nav.home', 'Home'), path: '/' },
     { label: t('nav.camps', 'Health Camps'), path: '/camps' },
+    { label: 'Command Center', path: '/command-center' },
+    { label: '3D Anatomy', path: '/education' },
     { label: '3D Digital Twin', path: '/digital-twin' },
     { label: 'AI Report Reader', path: '/reports/reader' },
     { label: t('nav.about', 'About'), path: '/about' },
@@ -123,6 +126,7 @@ export const Navbar: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-cyan-500 animate-pulse" />
               <span>Demo Mode</span>
             </button>
+            <OfflineSyncManager />
             <LanguageToggle />
             <ThemeToggle />
 
@@ -220,6 +224,7 @@ export const Navbar: React.FC = () => {
 
           {/* Mobile Actions & Menu Toggle */}
           <div className="flex lg:hidden items-center gap-1.5">
+            <OfflineSyncManager />
             <LanguageToggle />
             <ThemeToggle />
             <button

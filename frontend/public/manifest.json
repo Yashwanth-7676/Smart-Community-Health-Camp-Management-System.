@@ -1,11 +1,14 @@
 {
   "short_name": "HealthCamp",
   "name": "Smart Community Health Camp Management System",
+  "description": "Offline-ready, privacy-first community health screening, queue management, and medical operations platform.",
+  "categories": ["medical", "health", "productivity"],
   "icons": [
     {
       "src": "/favicon.svg",
       "type": "image/svg+xml",
-      "sizes": "192x192 512x512"
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
@@ -13,6 +16,28 @@
   "theme_color": "#0ea5e9",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "scope": "/"
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Command Center",
+      "short_name": "Command",
+      "description": "Live camp queue and operations status",
+      "url": "/command-center",
+      "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Health Camps",
+      "short_name": "Camps",
+      "description": "Discover upcoming community health camps",
+      "url": "/camps",
+      "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Health Education",
+      "short_name": "Education",
+      "description": "Interactive 3D anatomy and health awareness",
+      "url": "/education",
+      "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
+    }
+  ]
 }
-

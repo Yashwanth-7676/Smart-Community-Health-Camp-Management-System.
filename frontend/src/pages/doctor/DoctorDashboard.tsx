@@ -21,6 +21,7 @@ import {
   Package,
   Activity,
   Sparkles,
+  Radio,
 } from 'lucide-react';
 import apiClient from '@/api/client';
 import toast from 'react-hot-toast';
@@ -101,6 +102,15 @@ export const DoctorDashboard: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Link to="/command-center">
+              <Button
+                variant="outline"
+                className="border-primary-400/40 text-primary-300 hover:bg-primary-950/60 text-xs sm:text-sm font-semibold"
+                leftIcon={<Radio className="w-4 h-4 text-primary-400 animate-pulse" />}
+              >
+                Command Center
+              </Button>
+            </Link>
             <Link to="/reports/reader">
               <Button
                 variant="outline"

@@ -15,6 +15,8 @@ import {
   Compass,
   Bell,
   Settings,
+  Radio,
+  Sparkles,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -25,6 +27,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Overview', path: '/patient', icon: LayoutDashboard },
     { label: 'Book Appointment', path: '/patient/book', icon: Calendar },
     { label: 'My Profile', path: '/patient/profile', icon: User },
+    { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'Medical Reports', path: '/reports', icon: FileText },
     { label: 'Camp Discovery', path: '/camps', icon: Compass },
     { label: 'Notifications', path: '/notifications', icon: Bell },
@@ -32,25 +35,31 @@ export const Sidebar: React.FC = () => {
 
   const doctorItems = [
     { label: 'Doctor Dashboard', path: '/doctor', icon: LayoutDashboard },
+    { label: 'Command Center', path: '/command-center', icon: Radio },
     { label: 'Patient Queue', path: '/doctor/patients', icon: Users },
     { label: 'Medical Reports', path: '/doctor/reports', icon: FileText },
     { label: 'Medicine Inventory', path: '/inventory', icon: Package },
+    { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'Camp Schedule', path: '/camps', icon: Calendar },
     { label: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
   const volunteerItems = [
     { label: 'Volunteer Portal', path: '/volunteer', icon: LayoutDashboard },
+    { label: 'Command Center', path: '/command-center', icon: Radio },
     { label: 'Camp Discovery', path: '/camps', icon: Compass },
+    { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'Notifications', path: '/notifications', icon: Bell },
   ];
 
   const adminItems = [
     { label: 'Admin Overview', path: '/admin', icon: LayoutDashboard },
+    { label: 'Command Center', path: '/command-center', icon: Radio },
     { label: 'Camp Management', path: '/admin/camps', icon: Calendar },
     { label: 'User Management', path: '/admin/users', icon: Users },
     { label: 'Analytics & Trends', path: '/admin/analytics', icon: BarChart3 },
     { label: 'Inventory Stock', path: '/inventory', icon: Package },
+    { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'All Reports', path: '/reports', icon: FileText },
     { label: 'Broadcast Alerts', path: '/notifications', icon: Bell },
   ];
