@@ -29,6 +29,8 @@ import auditRoutes from './routes/audit';
 import docsRoutes from './routes/docs';
 import digitalTwinRoutes from './routes/digitalTwin';
 import followUpRoutes from './routes/followUps';
+import commandCenterRoutes from './routes/commandCenter';
+import digitalHealthIdRoutes from './routes/digitalHealthId';
 
 const app: Application = express();
 
@@ -135,6 +137,8 @@ app.use('/api', generalLimiter);
   app.use(`${prefix}/docs`, docsRoutes);
   app.use(`${prefix}/digital-twin`, digitalTwinRoutes);
   app.use(`${prefix}/follow-ups`, followUpRoutes);
+  app.use(`${prefix}/command-center`, commandCenterRoutes);
+  app.use(`${prefix}/health-id`, digitalHealthIdRoutes);
 });
 
 // ========================
