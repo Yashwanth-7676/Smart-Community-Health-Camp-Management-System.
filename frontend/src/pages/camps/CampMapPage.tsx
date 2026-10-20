@@ -44,8 +44,9 @@ import apiClient from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/utils/helpers';
 import toast from 'react-hot-toast';
-import Camp3DMap from '@/components/maps/Camp3DMap';
-import AICampPlannerModal from '@/components/admin/AICampPlannerModal';
+
+const Camp3DMap = React.lazy(() => import('@/components/maps/Camp3DMap'));
+const AICampPlannerModal = React.lazy(() => import('@/components/admin/AICampPlannerModal'));
 
 // -------------------------------------------------------------
 // Interfaces
@@ -855,12 +856,21 @@ export const CampMapPage: React.FC = () => {
             {/* 2D Leaflet Canvas OR 3D Globe Canvas */}
             <div className="relative flex-1 h-full">
               {mapDimension === '3D' ? (
-                <Camp3DMap
-                  camps={processedCamps}
-                  selectedCamp={selectedCamp}
-                  onSelectCamp={handleSelectCamp}
-                  userCoords={originCoords}
-                />
+                <React.Suspense
+                  fallback={
+                    <div className="flex flex-col items-center justify-center h-full bg-[#030712] text-cyan-400 space-y-2">
+                      <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-xs font-semibold">Loading 3D Geographic Engine...</p>
+                    </div>
+                  }
+                >
+                  <Camp3DMap
+                    camps={processedCamps}
+                    selectedCamp={selectedCamp}
+                    onSelectCamp={handleSelectCamp}
+                    userCoords={originCoords}
+                  />
+                </React.Suspense>
               ) : (
                 <MapContainer
                   center={originCoords || [12.9716, 77.5946]}
@@ -1514,14 +1524,16 @@ export const CampMapPage: React.FC = () => {
       {/* Administrator AI Camp Planning Assistant Modal               */}
       {/* ------------------------------------------------------------- */}
       {showAICampPlanner && (
-        <AICampPlannerModal
-          isOpen={showAICampPlanner}
-          onClose={() => setShowAICampPlanner(false)}
-          onProposalApproved={() => {
-            fetchCamps(false);
-            setShowAICampPlanner(false);
-          }}
-        />
+        <React.Suspense fallback={null}>
+          <AICampPlannerModal
+            isOpen={showAICampPlanner}
+            onClose={() => setShowAICampPlanner(false)}
+            onProposalApproved={() => {
+              fetchCamps(false);
+              setShowAICampPlanner(false);
+            }}
+          />
+        </React.Suspense>
       )}
     </div>
   );

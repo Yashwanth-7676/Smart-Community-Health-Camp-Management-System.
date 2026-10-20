@@ -7,17 +7,17 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import AIHealthAssistant from '@/components/ai/AIHealthAssistant';
 
-// Pages
+// Core Page
 import Home from '@/pages/Home';
-import Login from '@/pages/auth/Login';
-import Register from '@/pages/auth/Register';
-import CampDiscovery from '@/pages/camps/CampDiscovery';
-import CampDetail from '@/pages/camps/CampDetail';
-import HealthAwareness from '@/pages/HealthAwareness';
-import Contact from '@/pages/Contact';
-import AccessDenied from '@/components/common/AccessDenied';
 
 // Lazy Loaded Pages
+const Login = lazy(() => import('@/pages/auth/Login'));
+const Register = lazy(() => import('@/pages/auth/Register'));
+const CampDiscovery = lazy(() => import('@/pages/camps/CampDiscovery'));
+const CampDetail = lazy(() => import('@/pages/camps/CampDetail'));
+const HealthAwareness = lazy(() => import('@/pages/HealthAwareness'));
+const Contact = lazy(() => import('@/pages/Contact'));
+const AccessDenied = lazy(() => import('@/components/common/AccessDenied'));
 const About = lazy(() => import('@/pages/About'));
 const Services = lazy(() => import('@/pages/Services'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));

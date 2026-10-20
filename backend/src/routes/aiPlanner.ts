@@ -17,3 +17,4 @@ router.post('/approve', approveCampProposal);
 router.post('/reject', rejectCampProposal);
 
 export default router;
+

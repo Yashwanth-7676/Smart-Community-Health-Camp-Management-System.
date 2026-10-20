@@ -360,3 +360,4 @@ export const rejectCampProposal = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
+

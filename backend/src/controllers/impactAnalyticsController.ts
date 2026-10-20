@@ -182,6 +182,7 @@ export const getCommunityImpactReport = async (req: Request, res: Response, next
         'All data is aggregated across health camps and preserves strict patient anonymity. Statistics reflect operational healthcare access and do NOT represent total community disease prevalence or population epidemiology.',
     };
 
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.json({
       success: true,
       message: 'Community healthcare impact report generated successfully.',

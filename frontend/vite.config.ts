@@ -21,6 +21,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    target: 'es2020',
+    cssCodeSplit: true,
+    minify: 'esbuild',
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {

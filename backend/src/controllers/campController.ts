@@ -87,6 +87,7 @@ export const getCamps = async (req: Request, res: Response, next: NextFunction):
       }
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       message: 'Camps retrieved successfully',
@@ -350,6 +351,7 @@ export const getMapCamps = async (req: Request, res: Response, next: NextFunctio
       };
     });
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       data: {
@@ -415,6 +417,7 @@ export const updateCampLocation = async (req: Request, res: Response, next: Next
       }
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       message: 'Camp coordinates successfully updated and verified on map.',
@@ -560,6 +563,8 @@ export const getRegionalAnalytics = async (req: Request, res: Response, next: Ne
     const overallCapacity = regionalData.reduce((acc, r) => acc + r.totalCapacity, 0);
     const overallRegistered = regionalData.reduce((acc, r) => acc + r.totalRegistered, 0);
 
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       data: {
@@ -629,6 +634,7 @@ export const getCampById = async (req: Request, res: Response, next: NextFunctio
       throw new AppError('Camp not found', 404, 'NOT_FOUND');
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       message: 'Camp retrieved successfully',
@@ -777,6 +783,7 @@ export const updateCamp = async (req: Request, res: Response, next: NextFunction
       }
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       message: 'Camp updated successfully',
@@ -822,6 +829,7 @@ export const deleteCamp = async (req: Request, res: Response, next: NextFunction
       }
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       message: 'Camp cancelled successfully',
@@ -885,6 +893,7 @@ export const getCampAppointments = async (req: Request, res: Response, next: Nex
       }
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
       message: 'Camp appointments retrieved successfully',
