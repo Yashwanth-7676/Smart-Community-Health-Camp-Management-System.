@@ -869,6 +869,16 @@ export const CampMapPage: React.FC = () => {
                     selectedCamp={selectedCamp}
                     onSelectCamp={handleSelectCamp}
                     userCoords={originCoords}
+                    onBookCamp={handleBookCamp}
+                    onGetDirections={handleGetDirections}
+                    onToggleDimension={() => setMapDimension(mapDimension === '3D' ? '2D' : '3D')}
+                    mapDimension={mapDimension}
+                    isLive={liveSyncEnabled}
+                    isStale={isStale}
+                    lastSyncTime={lastUpdated}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={toggleFullscreen}
+                    onTriggerLocation={handleRequestGPS}
                   />
                 </React.Suspense>
               ) : (

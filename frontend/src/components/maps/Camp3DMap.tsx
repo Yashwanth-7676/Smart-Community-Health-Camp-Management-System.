@@ -1,176 +1,56 @@
 // src/components/maps/Camp3DMap.tsx
-import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Float, Html } from '@react-three/drei';
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { MapCamp } from '@/pages/camps/CampMapPage';
-import { RotateCcw, AlertTriangle, Info, MapPin, Users, Calendar } from 'lucide-react';
+import {
+  RotateCcw,
+  AlertTriangle,
+  Info,
+  MapPin,
+  Users,
+  Calendar,
+  Clock,
+  Navigation,
+  CheckCircle2,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Minus,
+  Crosshair,
+  Layers,
+  Sparkles,
+  X,
+  ChevronUp,
+  ChevronDown,
+  ArrowRight,
+  Radio,
+} from 'lucide-react';
 import { formatDate } from '@/utils/helpers';
+import Geographic3DTerrain, {
+  KARNATAKA_PROJECTION,
+  INDIA_PROJECTION,
+  projectLatLngTo3D,
+} from './Geographic3DTerrain';
+import Camp3DPillar, { Camp3DClusterPillar } from './Camp3DPillar';
 
-interface Camp3DMapProps {
+export interface Camp3DMapProps {
   camps: MapCamp[];
   selectedCamp: MapCamp | null;
   onSelectCamp: (camp: MapCamp) => void;
   userCoords?: [number, number] | null;
-}
-
-// Coordinate projection from (lat, lng) to 3D world space (x, z)
-// Centered around Karnataka geographic midpoint (~14.5° N, ~76.5° E)
-function projectCoordsTo3D(lat: number, lng: number): [number, number, number] {
-  const centerLat = 14.5;
-  const centerLng = 76.5;
-  const scale = 3.6;
-  const x = (lng - centerLng) * scale;
-  const z = -(lat - centerLat) * scale;
-  return [x, 0, z];
-}
-
-// Individual 3D Pillar for a health camp
-function CampPillar({
-  camp,
-  isSelected,
-  onSelect,
-}: {
-  camp: MapCamp;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const meshRef = useRef<THREE.Mesh>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-
-  const [x, , z] = useMemo(
-    () => projectCoordsTo3D(camp.latitude, camp.longitude),
-    [camp.latitude, camp.longitude]
-  );
-
-  // Pillar height proportional to capacity / attendance
-  const height = useMemo(() => {
-    const base = Math.max(1.2, Math.min(6.5, (camp.capacity || 100) / 32));
-    return base;
-  }, [camp.capacity]);
-
-  // Color scheme matching camp status
-  const color = useMemo(() => {
-    if (camp.status === 'ONGOING') return '#10b981'; // Emerald
-    if (camp.status === 'CANCELLED') return '#ef4444'; // Red
-    if (camp.isFullyBooked) return '#f59e0b'; // Amber
-    return '#06b6d4'; // Cyan
-  }, [camp.status, camp.isFullyBooked]);
-
-  // Subtle pulsing animation on frame
-  useFrame((state, delta) => {
-    if (ringRef.current && (camp.status === 'ONGOING' || isSelected)) {
-      ringRef.current.rotation.y += delta * 1.5;
-    }
-  });
-
-  return (
-    <group position={[x, 0, z]}>
-      {/* Base Foundation Disc */}
-      <mesh position={[0, 0.05, 0]}>
-        <cylinderGeometry args={[0.5, 0.65, 0.1, 16]} />
-        <meshStandardMaterial
-          color={isSelected ? '#ffffff' : color}
-          roughness={0.4}
-          metalness={0.6}
-          emissive={color}
-          emissiveIntensity={isSelected ? 0.6 : 0.2}
-        />
-      </mesh>
-
-      {/* Main Vertical Capacity Pillar */}
-      <mesh
-        ref={meshRef}
-        position={[0, height / 2, 0]}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect();
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHovered(true);
-        }}
-        onPointerOut={() => setHovered(false)}
-      >
-        <cylinderGeometry args={[0.22, 0.28, height, 16]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.2}
-          metalness={0.7}
-          transparent={true}
-          opacity={hovered || isSelected ? 0.95 : 0.8}
-          emissive={color}
-          emissiveIntensity={hovered || isSelected ? 0.8 : 0.3}
-        />
-      </mesh>
-
-      {/* Beacon Crown Sphere */}
-      <mesh position={[0, height + 0.3, 0]}>
-        <sphereGeometry args={[0.32, 16, 16]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive={color}
-          emissiveIntensity={isSelected ? 1.5 : 0.9}
-        />
-      </mesh>
-
-      {/* Pulsing Aura Ring */}
-      {(camp.status === 'ONGOING' || isSelected || hovered) && (
-        <mesh ref={ringRef} position={[0, height + 0.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.45, 0.65, 32]} />
-          <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.7} />
-        </mesh>
-      )}
-
-      {/* HTML Hover Card Overlay */}
-      {(hovered || isSelected) && (
-        <Html position={[0, height + 1.2, 0]} center distanceFactor={12}>
-          <div className="bg-slate-900/95 text-white p-3 rounded-2xl shadow-2xl border border-cyan-500/50 backdrop-blur-md pointer-events-none min-w-[200px] text-xs space-y-1">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
-                {camp.status}
-              </span>
-              <span className="text-[9px] text-emerald-400 font-bold">{camp.feeLabel}</span>
-            </div>
-            <p className="font-extrabold text-white text-xs leading-tight">{camp.name}</p>
-            <p className="text-[10px] text-slate-400 flex items-center gap-1">
-              <MapPin className="w-3 h-3 text-cyan-400" />
-              {camp.location}
-            </p>
-            <p className="text-[10px] text-cyan-300 flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {camp.registered} / {camp.capacity} Registered
-            </p>
-          </div>
-        </Html>
-      )}
-    </group>
-  );
-}
-
-// 3D Terrain Grid & Regional Boundaries
-function GeographicGridTerrain() {
-  return (
-    <group position={[0, -0.05, 0]}>
-      {/* Stylized dark futuristic grid plane */}
-      <gridHelper args={[40, 40, '#0e7490', '#1e293b']} position={[0, 0, 0]} />
-
-      {/* Base circular map platform */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]}>
-        <cylinderGeometry args={[22, 22, 0.15, 64]} />
-        <meshStandardMaterial color="#050c18" roughness={0.8} metalness={0.2} />
-      </mesh>
-
-      {/* Concentric geographic range rings */}
-      {[6, 12, 18].map((radius, i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-          <ringGeometry args={[radius - 0.03, radius + 0.03, 64]} />
-          <meshBasicMaterial color="#0891b2" transparent opacity={0.25} />
-        </mesh>
-      ))}
-    </group>
-  );
+  onBookCamp?: (camp: MapCamp) => void;
+  onViewDetails?: (camp: MapCamp) => void;
+  onGetDirections?: (camp: MapCamp) => void;
+  onToggleDimension?: () => void;
+  mapDimension?: '2D' | '3D';
+  isLive?: boolean;
+  isStale?: boolean;
+  lastSyncTime?: Date | null;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onTriggerLocation?: () => void;
 }
 
 // WebGL Fallback Error Boundary
@@ -198,104 +78,526 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
   selectedCamp,
   onSelectCamp,
   userCoords,
+  onBookCamp,
+  onViewDetails,
+  onGetDirections,
+  onToggleDimension,
+  mapDimension = '3D',
+  isLive = true,
+  isStale = false,
+  lastSyncTime = new Date(),
+  isFullscreen = false,
+  onToggleFullscreen,
+  onTriggerLocation,
 }) => {
   const controlsRef = useRef<any>(null);
+  const [regionFocus, setRegionFocus] = useState<'karnataka' | 'india'>('karnataka');
+  const [legendOpen, setLegendOpen] = useState<boolean>(true);
+  const [quickListOpen, setQuickListOpen] = useState<boolean>(false);
+  const [timeAgo, setTimeAgo] = useState<string>('just now');
 
-  const resetCamera = () => {
-    if (controlsRef.current) {
-      controlsRef.current.reset();
+  const prefersReducedMotion = useMemo(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    []
+  );
+
+  const activeProjection = regionFocus === 'karnataka' ? KARNATAKA_PROJECTION : INDIA_PROJECTION;
+
+  // Real-time synchronization counter
+  useEffect(() => {
+    const updateSyncLabel = () => {
+      if (!lastSyncTime) {
+        setTimeAgo('synced');
+        return;
+      }
+      const secs = Math.max(0, Math.floor((Date.now() - new Date(lastSyncTime).getTime()) / 1000));
+      if (secs < 5) setTimeAgo('just now');
+      else if (secs < 60) setTimeAgo(`${secs}s ago`);
+      else setTimeAgo(`${Math.floor(secs / 60)}m ago`);
+    };
+
+    updateSyncLabel();
+    const interval = setInterval(updateSyncLabel, 4000);
+    return () => clearInterval(interval);
+  }, [lastSyncTime]);
+
+  // Reset Camera View
+  const handleResetCamera = useCallback(() => {
+    if (!controlsRef.current) return;
+    if (regionFocus === 'karnataka') {
+      controlsRef.current.object.position.set(0, 18, 22);
+      controlsRef.current.target.set(0, 0, 0);
+    } else {
+      controlsRef.current.object.position.set(0, 32, 28);
+      controlsRef.current.target.set(0, 0, 0);
     }
+    controlsRef.current.update();
+  }, [regionFocus]);
+
+  // Handle Zoom In / Zoom Out
+  const handleZoom = (direction: 'in' | 'out') => {
+    if (!controlsRef.current) return;
+    const factor = direction === 'in' ? 0.8 : 1.25;
+    controlsRef.current.object.position.multiplyScalar(factor);
+    controlsRef.current.update();
   };
 
+  // Center Camera on Selected Camp
+  useEffect(() => {
+    if (selectedCamp && controlsRef.current && selectedCamp.latitude && selectedCamp.longitude) {
+      const [x, , z] = projectLatLngTo3D(selectedCamp.latitude, selectedCamp.longitude, activeProjection);
+      controlsRef.current.target.set(x, 0, z);
+      controlsRef.current.update();
+    }
+  }, [selectedCamp, activeProjection]);
+
+  // Switch region focus and adjust camera
+  const handleSwitchRegion = (region: 'karnataka' | 'india') => {
+    setRegionFocus(region);
+    setTimeout(() => {
+      if (controlsRef.current) {
+        if (region === 'karnataka') {
+          controlsRef.current.object.position.set(0, 18, 22);
+        } else {
+          controlsRef.current.object.position.set(0, 32, 28);
+        }
+        controlsRef.current.target.set(0, 0, 0);
+        controlsRef.current.update();
+      }
+    }, 50);
+  };
+
+  // Clustering for National (All-India) Overview Mode
+  const clusters = useMemo(() => {
+    if (regionFocus === 'karnataka') return [];
+
+    const grouped: Record<
+      string,
+      {
+        center: [number, number];
+        camps: MapCamp[];
+        totalCapacity: number;
+        totalRegistered: number;
+      }
+    > = {};
+
+    camps.forEach((c) => {
+      if (!c.latitude || !c.longitude) return;
+      // Group by ~1.2 degree cell (~120km)
+      const cellLat = Math.round(c.latitude / 1.2) * 1.2;
+      const cellLng = Math.round(c.longitude / 1.2) * 1.2;
+      const key = `${cellLat.toFixed(1)}_${cellLng.toFixed(1)}`;
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          center: [c.latitude, c.longitude],
+          camps: [],
+          totalCapacity: 0,
+          totalRegistered: 0,
+        };
+      }
+      grouped[key].camps.push(c);
+      grouped[key].totalCapacity += c.capacity || 100;
+      grouped[key].totalRegistered += c.registered || 0;
+    });
+
+    return Object.values(grouped);
+  }, [camps, regionFocus]);
+
   return (
-    <div className="relative w-full h-full bg-[#030712] overflow-hidden">
-      {/* 3D Map Notice Badge */}
-      <div className="absolute top-4 left-4 z-10 bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-2xl shadow-xl border border-cyan-500/30 text-xs max-w-sm space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="font-bold flex items-center gap-1.5 text-cyan-400">
-            <Info className="w-3.5 h-3.5" /> 3D Geographic Visualization
-          </span>
-          <span className="text-[10px] text-slate-400 font-mono">{camps.length} Pillars</span>
+    <div className="relative w-full h-full bg-[#030712] overflow-hidden select-none font-sans">
+      {/* ------------------------------------------------------------- */}
+      {/* TOP-LEFT HUD: Region Selector & Telemetry                     */}
+      {/* ------------------------------------------------------------- */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 max-w-sm">
+        {/* Region Scope Toggle */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-cyan-500/30 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => handleSwitchRegion('karnataka')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              regionFocus === 'karnataka'
+                ? 'bg-cyan-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5" /> Focus Karnataka
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchRegion('india')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              regionFocus === 'india'
+                ? 'bg-cyan-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" /> All India
+          </button>
         </div>
-        <p className="text-[11px] text-slate-300 leading-snug">
-          Pillar heights represent capacity and screening volume. Drag to rotate 360°, scroll to zoom, right-click to pan.
-        </p>
+
+        {/* Live Telemetry Status Pill */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/85 backdrop-blur-md rounded-xl border border-slate-800 text-[11px] text-slate-300 shadow-lg">
+          <span className="flex items-center gap-1.5 font-bold">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isLive && !isStale
+                  ? 'bg-emerald-400 animate-pulse'
+                  : 'bg-amber-400'
+              }`}
+            />
+            {isLive && !isStale ? 'LIVE TELEMETRY' : 'OFFLINE MODE'}
+          </span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-400 font-mono">{timeAgo}</span>
+          <span className="text-slate-500">•</span>
+          <span className="text-cyan-400 font-bold">{camps.length} Pillars</span>
+        </div>
       </div>
 
-      {/* Reset Camera Button */}
-      <button
-        type="button"
-        onClick={resetCamera}
-        className="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 text-white text-xs font-semibold border border-slate-700 shadow-md flex items-center gap-1.5 transition"
-      >
-        <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-        Reset View
-      </button>
+      {/* ------------------------------------------------------------- */}
+      {/* TOP-RIGHT CONTROLS: 2D/3D Mode, Reset, Fullscreen            */}
+      {/* ------------------------------------------------------------- */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {/* Dimension Switcher: 2D <-> 3D */}
+        {onToggleDimension && (
+          <button
+            type="button"
+            onClick={onToggleDimension}
+            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 text-xs font-bold border border-cyan-500/40 shadow-xl backdrop-blur-md flex items-center gap-1.5 transition"
+            title="Switch to 2D Leaflet Map"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Switch to 2D</span>
+          </button>
+        )}
 
-      {/* 3D Canvas with WebGL boundary */}
+        {/* Reset Camera */}
+        <button
+          type="button"
+          onClick={handleResetCamera}
+          className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700/80 shadow-xl backdrop-blur-md transition"
+          title="Reset Camera Orientation"
+        >
+          <RotateCcw className="w-4 h-4 text-cyan-400" />
+        </button>
+
+        {/* Fullscreen Toggle */}
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700/80 shadow-xl backdrop-blur-md transition"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4 text-cyan-400" />
+            ) : (
+              <Maximize2 className="w-4 h-4 text-cyan-400" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* FLOATING SELECTED CAMP INFORMATION CARD                       */}
+      {/* ------------------------------------------------------------- */}
+      {selectedCamp && (
+        <div className="absolute top-16 right-4 z-30 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-2xl rounded-3xl border border-cyan-500/40 shadow-2xl p-4 text-white space-y-3 animate-in fade-in slide-in-from-right-4 duration-200">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                    selectedCamp.status === 'ONGOING'
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : selectedCamp.isFullyBooked
+                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                      : 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
+                  }`}
+                >
+                  {selectedCamp.status}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  {selectedCamp.feeLabel}
+                </span>
+              </div>
+              <h3 className="text-sm font-black text-white leading-tight">
+                {selectedCamp.name}
+              </h3>
+              <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
+                <span className="truncate">{selectedCamp.location}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onSelectCamp(null as any)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              title="Close Camp Card"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Operational Hours & Dates */}
+          <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{formatDate(selectedCamp.startDate)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{(selectedCamp as any).operationalHours || '09:00 AM - 04:30 PM'}</span>
+            </div>
+          </div>
+
+          {/* Capacity & Slot Metrics */}
+          {(() => {
+            const cap = selectedCamp.capacity || 100;
+            const reg = selectedCamp.registered || 0;
+            const pct = Math.min(100, Math.round((reg / cap) * 100));
+            return (
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <Users className="w-3 h-3" /> Registration Volume
+                  </span>
+                  <span className="font-mono text-cyan-300 font-bold">
+                    {reg} / {cap} ({pct}%)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      selectedCamp.isFullyBooked
+                        ? 'bg-amber-400'
+                        : 'bg-gradient-to-r from-cyan-500 to-blue-500'
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                  <span>
+                    Remaining slots: <strong className="text-white">{selectedCamp.availableSlots}</strong>
+                  </span>
+                  {selectedCamp.distanceLabel && (
+                    <span className="text-cyan-400">{selectedCamp.distanceLabel}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Clinical Specialties */}
+          {selectedCamp.services && selectedCamp.services.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Available Clinical Services:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {selectedCamp.services.map((svc) => (
+                  <span
+                    key={svc}
+                    className="text-[10px] px-2 py-0.5 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-800"
+                  >
+                    {svc}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => onBookCamp && onBookCamp(selectedCamp)}
+              disabled={selectedCamp.isFullyBooked}
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md ${
+                selectedCamp.isFullyBooked
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{selectedCamp.isFullyBooked ? 'Fully Booked' : 'Book Camp'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onGetDirections && onGetDirections(selectedCamp)}
+              className="py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Directions</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 3D WEBGL CANVAS WITH GENUINE GEOGRAPHIC MAP TERRAIN           */}
+      {/* ------------------------------------------------------------- */}
       <WebGLBoundary
         fallback={
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center text-white space-y-3">
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center text-white space-y-4">
             <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto" />
             <h3 className="text-base font-bold">3D WebGL Acceleration Unavailable</h3>
             <p className="text-xs text-slate-400 max-w-md">
-              Your graphics hardware or browser does not currently support hardware-accelerated 3D WebGL rendering. You can continue using the high-performance 2D interactive map.
+              Your browser or hardware cannot render hardware-accelerated 3D WebGL scenes. Please switch to the high-performance 2D map.
             </p>
+            {onToggleDimension && (
+              <button
+                type="button"
+                onClick={onToggleDimension}
+                className="px-4 py-2 bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-lg"
+              >
+                Switch to 2D Map
+              </button>
+            )}
           </div>
         }
       >
         <Canvas
-          camera={{ position: [0, 16, 22], fov: 42 }}
+          camera={{
+            position: regionFocus === 'karnataka' ? [0, 18, 22] : [0, 32, 28],
+            fov: 42,
+            near: 0.1,
+            far: 150,
+          }}
           className="w-full h-full cursor-grab active:cursor-grabbing"
         >
-          {/* Lighting */}
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[10, 20, 10]} intensity={1.2} />
-          <pointLight position={[-10, 15, -10]} intensity={0.8} color="#22d3ee" />
+          {/* Studio & Neon Lighting */}
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[15, 25, 15]} intensity={1.3} />
+          <pointLight position={[-12, 18, -12]} intensity={0.9} color="#22d3ee" />
+          <pointLight position={[12, 15, 12]} intensity={0.6} color="#38bdf8" />
 
-          {/* Interactive Controls */}
+          {/* Interactive 3D Camera Controls */}
           <OrbitControls
             ref={controlsRef}
-            maxPolarAngle={Math.PI / 2.1}
-            minDistance={8}
-            maxDistance={40}
+            maxPolarAngle={Math.PI / 2.05} // Prevent camera from dipping underneath ground
+            minDistance={6}
+            maxDistance={55}
             enableDamping
-            dampingFactor={0.05}
+            dampingFactor={0.06}
           />
 
-          {/* Terrain Grid */}
-          <GeographicGridTerrain />
+          {/* Real Geographic Map Ground Plane with Cartographic Geography */}
+          <Geographic3DTerrain regionFocus={regionFocus} />
 
-          {/* Real Camp 3D Pillars */}
-          {camps.map((camp) => (
-            <CampPillar
-              key={camp.id}
-              camp={camp}
-              isSelected={selectedCamp?.id === camp.id}
-              onSelect={() => onSelectCamp(camp)}
-            />
-          ))}
+          {/* Individual 3D Camp Pillars (Karnataka View) */}
+          {regionFocus === 'karnataka' &&
+            camps.map((camp) => (
+              <Camp3DPillar
+                key={camp.id}
+                camp={camp}
+                isSelected={selectedCamp?.id === camp.id}
+                onSelect={() => onSelectCamp(camp)}
+                projection={activeProjection}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+            ))}
+
+          {/* Clustered 3D Pillars (All India View) */}
+          {regionFocus === 'india' &&
+            clusters.map((cluster, i) => (
+              <Camp3DClusterPillar
+                key={`cluster-${i}`}
+                cluster={cluster}
+                projection={activeProjection}
+                onExpandCluster={() => {
+                  setRegionFocus('karnataka');
+                  setTimeout(handleResetCamera, 50);
+                }}
+              />
+            ))}
         </Canvas>
       </WebGLBoundary>
 
-      {/* 3D Legend (Bottom-Left) */}
-      <div className="absolute bottom-6 left-4 z-10 bg-slate-900/90 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-slate-800 text-xs text-white hidden sm:block">
-        <span className="font-bold text-[11px] uppercase tracking-wider text-slate-400 block mb-1.5">
-          3D Beacon Status
-        </span>
-        <div className="space-y-1.5 text-[11px]">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-            <span className="text-slate-300">Upcoming Camp</span>
+      {/* ------------------------------------------------------------- */}
+      {/* BOTTOM-RIGHT: Zoom & Location Controls                        */}
+      {/* ------------------------------------------------------------- */}
+      <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={() => handleZoom('in')}
+          className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 shadow-xl backdrop-blur-md transition"
+          title="Zoom In"
+        >
+          <Plus className="w-4 h-4 text-cyan-400" />
+        </button>
+        <button
+          type="button"
+          onClick={() => handleZoom('out')}
+          className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 shadow-xl backdrop-blur-md transition"
+          title="Zoom Out"
+        >
+          <Minus className="w-4 h-4 text-cyan-400" />
+        </button>
+        {onTriggerLocation && (
+          <button
+            type="button"
+            onClick={onTriggerLocation}
+            className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 shadow-xl backdrop-blur-md transition"
+            title="My Current Location"
+          >
+            <Crosshair className="w-4 h-4 text-cyan-400" />
+          </button>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* BOTTOM-LEFT: Collapsible Legend & Metric Definition           */}
+      {/* ------------------------------------------------------------- */}
+      <div className="absolute bottom-6 left-4 z-20 max-w-xs">
+        <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl p-3 text-xs text-white">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <span className="font-extrabold text-[11px] uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5" /> 3D Geographic Legend
+            </span>
+            <button
+              type="button"
+              onClick={() => setLegendOpen(!legendOpen)}
+              className="text-slate-400 hover:text-white"
+            >
+              {legendOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-slate-300">Ongoing Active Camp</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-            <span className="text-slate-300">Fully Booked Camp</span>
-          </div>
+
+          {legendOpen && (
+            <div className="space-y-2 text-[11px] pt-1 border-t border-slate-800">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                  <span className="text-slate-300">Upcoming Camp</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-slate-300">Ongoing Active Camp</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <span className="text-slate-300">Fully Booked Camp</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                  <span className="text-slate-300">Cancelled Camp</span>
+                </div>
+              </div>
+
+              <div className="pt-1.5 border-t border-slate-800 text-[10px] text-slate-400 space-y-0.5">
+                <p>
+                  <strong className="text-slate-200">Pillar Height:</strong> Scaled to camp capacity (1 unit ≈ 30 patients).
+                </p>
+                <p className="text-[9px] text-slate-500">
+                  Basemap data © OpenStreetMap contributors, CartoDB.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -303,4 +605,3 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
 };
 
 export default Camp3DMap;
-
