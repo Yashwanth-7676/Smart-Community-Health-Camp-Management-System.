@@ -3,7 +3,7 @@ import { PrismaClient, AppointmentStatus, CampStatus } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { getPagination, buildPaginationMeta, generateQueueToken, generateTimeSlots } from '../utils/helpers';
 import { CreateAppointmentDto, UpdateAppointmentDto, ListQueryParams } from '../types';
-import { DEMO_APPOINTMENTS, isDbConnectionError } from '../utils/mockStore';
+import { DEMO_APPOINTMENTS, DEMO_CAMPS, isDbConnectionError } from '../utils/mockStore';
 
 const prisma = new PrismaClient();
 
@@ -203,6 +203,18 @@ export const createAppointment = async (req: Request, res: Response, next: NextF
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
         // Fallback for demonstration when Postgres is not running
+        const targetCamp = DEMO_CAMPS.find((c) => c.id === campId);
+        if (targetCamp) {
+          if (targetCamp.status === 'COMPLETED' || targetCamp.status === 'CANCELLED') {
+            throw new AppError('This camp is no longer accepting appointments', 400, 'CAMP_UNAVAILABLE');
+          }
+          const currentRegistered = targetCamp.registered ?? targetCamp._count?.appointments ?? 0;
+          if (currentRegistered >= (targetCamp.capacity || 100)) {
+            throw new AppError('Camp is at full capacity. No more registrations accepted.', 409, 'CAMP_FULL');
+          }
+          targetCamp.registered = currentRegistered + 1;
+        }
+
         const tokenNum = DEMO_APPOINTMENTS.length + 1;
         const qToken = `DEMO-${String(tokenNum).padStart(3, '0')}`;
         fullAppointment = {
@@ -217,7 +229,7 @@ export const createAppointment = async (req: Request, res: Response, next: NextF
           notes: notes || '',
           patient: { id: patientId, firstName: 'Kavitha', lastName: 'Reddy', email: 'patient1@healthcamp.com', phone: '+91-9876543217' },
           doctor: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma' },
-          camp: { id: campId, name: 'Koramangala Community Health Camp', location: 'Koramangala, Bangalore', address: '80 Feet Road' },
+          camp: { id: campId, name: targetCamp?.name || 'Koramangala Community Health Camp', location: targetCamp?.location || 'Koramangala, Bangalore', address: targetCamp?.address || '80 Feet Road' },
           queueTokenRef: { id: `token-${Date.now()}`, tokenNumber: tokenNum, status: 'WAITING' },
         };
         DEMO_APPOINTMENTS.unshift(fullAppointment);

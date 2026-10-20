@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getCamps,
   getMapCamps,
+  getRegionalAnalytics,
   getCampById,
   createCamp,
   updateCamp,
@@ -13,8 +14,9 @@ import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 
-// Full map discovery endpoint - must be before /:id
+// Full map discovery and regional analytics endpoints - must be before /:id
 router.get('/map', getMapCamps);
+router.get('/regional-analytics', authenticate, authorize('ADMIN'), getRegionalAnalytics);
 
 router.get('/', getCamps);
 router.get('/:id', getCampById);
