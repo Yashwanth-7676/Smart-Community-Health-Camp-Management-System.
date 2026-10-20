@@ -31,6 +31,7 @@ import digitalTwinRoutes from './routes/digitalTwin';
 import followUpRoutes from './routes/followUps';
 import commandCenterRoutes from './routes/commandCenter';
 import digitalHealthIdRoutes from './routes/digitalHealthId';
+import aiPlannerRoutes from './routes/aiPlanner';
 
 const app: Application = express();
 
@@ -139,6 +140,7 @@ app.use('/api', generalLimiter);
   app.use(`${prefix}/follow-ups`, followUpRoutes);
   app.use(`${prefix}/command-center`, commandCenterRoutes);
   app.use(`${prefix}/health-id`, digitalHealthIdRoutes);
+  app.use(`${prefix}/ai-planner`, aiPlannerRoutes);
 });
 
 // ========================

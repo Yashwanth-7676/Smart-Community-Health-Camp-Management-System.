@@ -1,5 +1,6 @@
 // frontend/src/pages/CommandCenter.tsx
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Activity,
   Users,
@@ -94,8 +95,10 @@ interface CommandCenterData {
 
 export const CommandCenter: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const paramCampId = searchParams.get('campId');
   const [camps, setCamps] = useState<Array<{ id: string; name: string; location: string }>>([]);
-  const [selectedCampId, setSelectedCampId] = useState<string>('camp-1');
+  const [selectedCampId, setSelectedCampId] = useState<string>(paramCampId || 'camp-1');
   const [data, setData] = useState<CommandCenterData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [streamStatus, setStreamStatus] = useState<'LIVE' | 'POLLING' | 'DISCONNECTED'>('LIVE');
@@ -109,7 +112,11 @@ export const CommandCenter: React.FC = () => {
         const list = res.data?.data?.camps || res.data?.data || [];
         if (list.length > 0) {
           setCamps(list);
-          setSelectedCampId(list[0].id);
+          if (paramCampId && list.some((c: any) => c.id === paramCampId)) {
+            setSelectedCampId(paramCampId);
+          } else if (!paramCampId) {
+            setSelectedCampId(list[0].id);
+          }
         }
       } catch {
         setCamps([
@@ -119,7 +126,7 @@ export const CommandCenter: React.FC = () => {
       }
     };
     fetchCamps();
-  }, []);
+  }, [paramCampId]);
 
   // Fetch initial snapshot and connect SSE stream
   useEffect(() => {

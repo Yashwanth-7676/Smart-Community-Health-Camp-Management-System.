@@ -38,11 +38,14 @@ import {
   AlertTriangle,
   ArrowRight,
   TrendingUp,
+  Box,
 } from 'lucide-react';
 import apiClient from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/utils/helpers';
 import toast from 'react-hot-toast';
+import Camp3DMap from '@/components/maps/Camp3DMap';
+import AICampPlannerModal from '@/components/admin/AICampPlannerModal';
 
 // -------------------------------------------------------------
 // Interfaces
@@ -286,6 +289,8 @@ export const CampMapPage: React.FC = () => {
   const [flyToCoords, setFlyToCoords] = useState<[number, number] | null>(null);
   const [flyToZoom, setFlyToZoom] = useState<number>(14);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [mapDimension, setMapDimension] = useState<'2D' | '3D'>('2D');
+  const [showAICampPlanner, setShowAICampPlanner] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showRegionalModal, setShowRegionalModal] = useState<boolean>(false);
   const [regionalData, setRegionalData] = useState<RegionalAnalyticsData | null>(null);
@@ -718,6 +723,43 @@ export const CampMapPage: React.FC = () => {
               </button>
             )}
 
+            {/* 2D / 3D Map Dimension Switcher */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setMapDimension('2D')}
+                className={`px-2 py-1 text-xs font-bold rounded-lg transition ${
+                  mapDimension === '2D'
+                    ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                2D Map
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapDimension('3D')}
+                className={`px-2 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 ${
+                  mapDimension === '3D'
+                    ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Box className="w-3 h-3" /> 3D Globe
+              </button>
+            </div>
+
+            {/* Admin AI Camp Planner Button */}
+            {user?.role === 'admin' && (
+              <button
+                type="button"
+                onClick={() => setShowAICampPlanner(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm transition whitespace-nowrap"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> AI Planner
+              </button>
+            )}
+
             {/* Admin Regional Analytics Button */}
             {user?.role === 'admin' && (
               <button
@@ -810,212 +852,221 @@ export const CampMapPage: React.FC = () => {
         {/* VIEW 1: Full-Screen Interactive Leaflet Map */}
         {viewMode === 'map' ? (
           <div className="relative w-full h-full flex">
-            {/* The Leaflet Canvas */}
+            {/* 2D Leaflet Canvas OR 3D Globe Canvas */}
             <div className="relative flex-1 h-full">
-              <MapContainer
-                center={originCoords || [12.9716, 77.5946]}
-                zoom={11}
-                zoomControl={false}
-                scrollWheelZoom={true}
-                className="w-full h-full z-0"
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  maxZoom={19}
+              {mapDimension === '3D' ? (
+                <Camp3DMap
+                  camps={processedCamps}
+                  selectedCamp={selectedCamp}
+                  onSelectCamp={handleSelectCamp}
+                  userCoords={originCoords}
                 />
-                <ZoomControl position="bottomright" />
-                <MapUpdater targetPos={flyToCoords} targetZoom={flyToZoom} />
-                <MapClickHandler
-                  onMapClick={(lat, lng) => handleMapPinSelect(lat, lng)}
-                  enabled={manualPinActive}
-                />
+              ) : (
+                <MapContainer
+                  center={originCoords || [12.9716, 77.5946]}
+                  zoom={11}
+                  zoomControl={false}
+                  scrollWheelZoom={true}
+                  className="w-full h-full z-0"
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    maxZoom={19}
+                  />
+                  <ZoomControl position="bottomright" />
+                  <MapUpdater targetPos={flyToCoords} targetZoom={flyToZoom} />
+                  <MapClickHandler
+                    onMapClick={(lat, lng) => handleMapPinSelect(lat, lng)}
+                    enabled={manualPinActive}
+                  />
 
-                {/* Origin Marker */}
-                {originCoords && (
-                  <Marker position={originCoords} icon={originLocationIcon}>
-                    <Popup>
-                      <div className="p-1 text-xs">
-                        <p className="font-bold text-blue-600">
-                          {originType === 'gps' ? 'Your Current Location' : 'Custom Search Origin'}
-                        </p>
-                        <p className="text-slate-500">All camp straight-line distances measured from here.</p>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )}
+                  {/* Origin Marker */}
+                  {originCoords && (
+                    <Marker position={originCoords} icon={originLocationIcon}>
+                      <Popup>
+                        <div className="p-1 text-xs">
+                          <p className="font-bold text-blue-600">
+                            {originType === 'gps' ? 'Your Current Location' : 'Custom Search Origin'}
+                          </p>
+                          <p className="text-slate-500">All camp straight-line distances measured from here.</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
 
-                {/* MODE A: Standard Markers */}
-                {visualizationMode === 'markers' &&
-                  processedCamps.map((camp) => {
-                    if (!camp.latitude || !camp.longitude || isNaN(camp.latitude) || isNaN(camp.longitude)) {
-                      return null;
-                    }
-                    const isSelected = selectedCamp?.id === camp.id;
-                    const markerIcon = createCampMarkerIcon(
-                      camp.status,
-                      camp.isFullyBooked,
-                      isSelected,
-                      prefersReducedMotion
-                    );
+                  {/* MODE A: Standard Markers */}
+                  {visualizationMode === 'markers' &&
+                    processedCamps.map((camp) => {
+                      if (!camp.latitude || !camp.longitude || isNaN(camp.latitude) || isNaN(camp.longitude)) {
+                        return null;
+                      }
+                      const isSelected = selectedCamp?.id === camp.id;
+                      const markerIcon = createCampMarkerIcon(
+                        camp.status,
+                        camp.isFullyBooked,
+                        isSelected,
+                        prefersReducedMotion
+                      );
 
-                    return (
+                      return (
+                        <Marker
+                          key={camp.id}
+                          position={[camp.latitude, camp.longitude]}
+                          icon={markerIcon}
+                          eventHandlers={{
+                            click: () => handleSelectCamp(camp),
+                          }}
+                        >
+                          <Popup className="custom-camp-popup" minWidth={260} maxWidth={320}>
+                            <div className="p-1 space-y-2 text-slate-800 dark:text-slate-100">
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                    camp.status === 'ONGOING'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : camp.isFullyBooked
+                                      ? 'bg-amber-100 text-amber-700'
+                                      : 'bg-cyan-100 text-cyan-700'
+                                  }`}
+                                >
+                                  {camp.status === 'ONGOING' ? '● Ongoing Now' : camp.status}
+                                </span>
+                                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  {camp.feeLabel}
+                                </span>
+                              </div>
+
+                              <h4 className="font-bold text-sm text-slate-900 leading-tight">{camp.name}</h4>
+                              <p className="text-xs text-slate-500 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-cyan-600 flex-shrink-0" />
+                                {camp.location}
+                              </p>
+
+                              <div className="text-xs text-slate-600 space-y-1 bg-slate-50 p-2 rounded-lg">
+                                <p className="flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5 text-cyan-600" />
+                                  {formatDate(camp.startDate)}
+                                </p>
+                                {camp.distance !== null && camp.distance !== undefined && (
+                                  <p className="flex items-center gap-1 font-semibold text-blue-600">
+                                    <Compass className="w-3.5 h-3.5" />
+                                    {camp.distance} km straight-line distance
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleGetDirections(camp)}
+                                  className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1"
+                                >
+                                  <Navigation className="w-3 h-3 text-cyan-600" />
+                                  Directions
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleBookCamp(camp)}
+                                  disabled={camp.isFullyBooked}
+                                  className={`py-1.5 px-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 ${
+                                    camp.isFullyBooked
+                                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                      : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'
+                                  }`}
+                                >
+                                  {camp.isFullyBooked ? 'Full' : 'Book Camp'}
+                                </button>
+                              </div>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
+
+                  {/* MODE B: Dynamic Clustered Markers */}
+                  {visualizationMode === 'clusters' &&
+                    clusters.map((cl, idx) => (
                       <Marker
-                        key={camp.id}
-                        position={[camp.latitude, camp.longitude]}
-                        icon={markerIcon}
+                        key={`cluster-${idx}`}
+                        position={cl.center}
+                        icon={createClusterMarkerIcon(cl.camps.length, cl.totalAttendance)}
                         eventHandlers={{
-                          click: () => handleSelectCamp(camp),
+                          click: () => {
+                            setFlyToCoords(cl.center);
+                            setFlyToZoom(13);
+                            if (cl.camps.length === 1) {
+                              handleSelectCamp(cl.camps[0]);
+                            } else {
+                              toast(`Cluster has ${cl.camps.length} camps with ${cl.totalAttendance} attendees registered.`, {
+                                icon: '🏥',
+                              });
+                            }
+                          },
                         }}
                       >
-                        <Popup className="custom-camp-popup" minWidth={260} maxWidth={320}>
-                          <div className="p-1 space-y-2 text-slate-800 dark:text-slate-100">
-                            <div className="flex items-center justify-between gap-1 mb-1">
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                  camp.status === 'ONGOING'
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : camp.isFullyBooked
-                                    ? 'bg-amber-100 text-amber-700'
-                                    : 'bg-cyan-100 text-cyan-700'
-                                }`}
-                              >
-                                {camp.status === 'ONGOING' ? '● Ongoing Now' : camp.status}
-                              </span>
-                              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                {camp.feeLabel}
-                              </span>
-                            </div>
-
-                            <h4 className="font-bold text-sm text-slate-900 leading-tight">{camp.name}</h4>
-                            <p className="text-xs text-slate-500 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-cyan-600 flex-shrink-0" />
-                              {camp.location}
-                            </p>
-
-                            <div className="text-xs text-slate-600 space-y-1 bg-slate-50 p-2 rounded-lg">
-                              <p className="flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5 text-cyan-600" />
-                                {formatDate(camp.startDate)}
-                              </p>
-                              {camp.distance !== null && camp.distance !== undefined && (
-                                <p className="flex items-center gap-1 font-semibold text-blue-600">
-                                  <Compass className="w-3.5 h-3.5" />
-                                  {camp.distance} km straight-line distance
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => handleGetDirections(camp)}
-                                className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1"
-                              >
-                                <Navigation className="w-3 h-3 text-cyan-600" />
-                                Directions
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleBookCamp(camp)}
-                                disabled={camp.isFullyBooked}
-                                className={`py-1.5 px-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 ${
-                                  camp.isFullyBooked
-                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'
-                                }`}
-                              >
-                                {camp.isFullyBooked ? 'Full' : 'Book Camp'}
-                              </button>
+                        <Popup>
+                          <div className="p-1 text-xs space-y-1">
+                            <p className="font-bold text-slate-800">Cluster of {cl.camps.length} Health Camps</p>
+                            <p className="text-slate-500">Total Registered: {cl.totalAttendance} patients</p>
+                            <div className="space-y-1 max-h-36 overflow-y-auto pt-1">
+                              {cl.camps.map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => handleSelectCamp(c)}
+                                  className="w-full text-left py-1 px-1.5 hover:bg-cyan-50 rounded text-cyan-700 font-medium truncate block"
+                                >
+                                  • {c.name}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         </Popup>
                       </Marker>
-                    );
-                  })}
+                    ))}
 
-                {/* MODE B: Dynamic Clustered Markers */}
-                {visualizationMode === 'clusters' &&
-                  clusters.map((cl, idx) => (
-                    <Marker
-                      key={`cluster-${idx}`}
-                      position={cl.center}
-                      icon={createClusterMarkerIcon(cl.camps.length, cl.totalAttendance)}
-                      eventHandlers={{
-                        click: () => {
-                          setFlyToCoords(cl.center);
-                          setFlyToZoom(13);
-                          if (cl.camps.length === 1) {
-                            handleSelectCamp(cl.camps[0]);
-                          } else {
-                            toast(`Cluster has ${cl.camps.length} camps with ${cl.totalAttendance} attendees registered.`, {
-                              icon: '🏥',
-                            });
-                          }
-                        },
-                      }}
-                    >
-                      <Popup>
-                        <div className="p-1 text-xs space-y-1">
-                          <p className="font-bold text-slate-800">Cluster of {cl.camps.length} Health Camps</p>
-                          <p className="text-slate-500">Total Registered: {cl.totalAttendance} patients</p>
-                          <div className="space-y-1 max-h-36 overflow-y-auto pt-1">
-                            {cl.camps.map((c) => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => handleSelectCamp(c)}
-                                className="w-full text-left py-1 px-1.5 hover:bg-cyan-50 rounded text-cyan-700 font-medium truncate block"
-                              >
-                                • {c.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
+                  {/* MODE C: Attendance Density Heatmap Circles */}
+                  {visualizationMode === 'heatmap' &&
+                    processedCamps.map((camp) => {
+                      if (!camp.latitude || !camp.longitude) return null;
+                      const attendance = camp.registered || 0;
+                      // Radius scales smoothly with attendance
+                      const radius = Math.max(3000, Math.min(18000, attendance * 90));
+                      let color = '#06b6d4'; // Cyan
+                      if (attendance > 100) color = '#10b981'; // Emerald
+                      if (attendance > 250) color = '#f59e0b'; // Amber
+                      if (attendance > 400) color = '#ef4444'; // Ruby
 
-                {/* MODE C: Attendance Density Heatmap Circles */}
-                {visualizationMode === 'heatmap' &&
-                  processedCamps.map((camp) => {
-                    if (!camp.latitude || !camp.longitude) return null;
-                    const attendance = camp.registered || 0;
-                    // Radius scales smoothly with attendance
-                    const radius = Math.max(3000, Math.min(18000, attendance * 90));
-                    let color = '#06b6d4'; // Cyan
-                    if (attendance > 100) color = '#10b981'; // Emerald
-                    if (attendance > 250) color = '#f59e0b'; // Amber
-                    if (attendance > 400) color = '#ef4444'; // Ruby
-
-                    return (
-                      <Circle
-                        key={`heat-${camp.id}`}
-                        center={[camp.latitude, camp.longitude]}
-                        radius={radius}
-                        pathOptions={{
-                          color: color,
-                          fillColor: color,
-                          fillOpacity: 0.28,
-                          weight: 1.5,
-                        }}
-                        eventHandlers={{
-                          click: () => handleSelectCamp(camp),
-                        }}
-                      >
-                        <Popup>
-                          <div className="p-1 text-xs">
-                            <p className="font-bold text-slate-800">{camp.name}</p>
-                            <p className="text-slate-600">Screening Attendance Volume: {attendance} patients</p>
-                            <p className="text-[10px] text-slate-400 mt-1">
-                              Density reflects recorded camp turnout only; not disease prevalence.
-                            </p>
-                          </div>
-                        </Popup>
-                      </Circle>
-                    );
-                  })}
-              </MapContainer>
+                      return (
+                        <Circle
+                          key={`heat-${camp.id}`}
+                          center={[camp.latitude, camp.longitude]}
+                          radius={radius}
+                          pathOptions={{
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.28,
+                            weight: 1.5,
+                          }}
+                          eventHandlers={{
+                            click: () => handleSelectCamp(camp),
+                          }}
+                        >
+                          <Popup>
+                            <div className="p-1 text-xs">
+                              <p className="font-bold text-slate-800">{camp.name}</p>
+                              <p className="text-slate-600">Screening Attendance Volume: {attendance} patients</p>
+                              <p className="text-[10px] text-slate-400 mt-1">
+                                Density reflects recorded camp turnout only; not disease prevalence.
+                              </p>
+                            </div>
+                          </Popup>
+                        </Circle>
+                      );
+                    })}
+                </MapContainer>
+              )}
 
               {/* Heatmap Scientific Disclaimer Badge */}
               {visualizationMode === 'heatmap' && (
@@ -1149,6 +1200,36 @@ export const CampMapPage: React.FC = () => {
                             Route <ExternalLink className="w-2.5 h-2.5" />
                           </button>
                         </div>
+
+                        {isSelected && (
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-cyan-500/30">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBookCamp(camp);
+                              }}
+                              disabled={camp.isFullyBooked}
+                              className={`py-1.5 px-2 text-xs font-bold rounded-lg text-center transition ${
+                                camp.isFullyBooked
+                                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                                  : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'
+                              }`}
+                            >
+                              {camp.isFullyBooked ? 'Fully Booked' : 'Book Camp'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/command-center?campId=${camp.id}`);
+                              }}
+                              className="py-1.5 px-2 text-xs font-bold rounded-lg text-center bg-purple-100 dark:bg-purple-950/60 hover:bg-purple-200 text-purple-700 dark:text-purple-300 transition flex items-center justify-center gap-1"
+                            >
+                              <Radio className="w-3 h-3 text-purple-500 animate-pulse" /> Live Ops
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -1427,6 +1508,20 @@ export const CampMapPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* Administrator AI Camp Planning Assistant Modal               */}
+      {/* ------------------------------------------------------------- */}
+      {showAICampPlanner && (
+        <AICampPlannerModal
+          isOpen={showAICampPlanner}
+          onClose={() => setShowAICampPlanner(false)}
+          onProposalApproved={() => {
+            fetchCamps(false);
+            setShowAICampPlanner(false);
+          }}
+        />
       )}
     </div>
   );
