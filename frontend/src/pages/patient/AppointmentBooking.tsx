@@ -1,6 +1,6 @@
 // src/pages/patient/AppointmentBooking.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCamps } from '@/hooks/useCamps';
 import { useCreateAppointment } from '@/hooks/useAppointments';
 import { QueueToken } from '@/components/common/QueueToken';
@@ -32,6 +32,7 @@ const TIME_SLOTS = [
 
 export const AppointmentBooking: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data: campsData, isLoading: campsLoading } = useCamps();
   const createAppointment = useCreateAppointment();
 
@@ -45,6 +46,17 @@ export const AppointmentBooking: React.FC = () => {
   const [selectedService, setSelectedService] = useState<string>('General Medicine');
   const [notes, setNotes] = useState<string>('');
   const [confirmedToken, setConfirmedToken] = useState<any>(null);
+
+  useEffect(() => {
+    const paramCampId = searchParams.get('campId') || searchParams.get('camp');
+    const paramService = searchParams.get('service');
+    if (paramCampId) {
+      setSelectedCampId(paramCampId);
+    }
+    if (paramService) {
+      setSelectedService(paramService);
+    }
+  }, [searchParams]);
 
   const activeCamp = camps.find((c: any) => c.id === selectedCampId) || camps[0];
 

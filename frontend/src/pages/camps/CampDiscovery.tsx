@@ -329,8 +329,17 @@ export default function CampDiscovery() {
               }`}
             >
               <Map size={15} />
-              <span className="hidden sm:inline">Live Map</span>
+              <span className="hidden sm:inline">Inline Map</span>
             </button>
+
+            <Link
+              to="/camp-map"
+              title="Open Fullscreen Interactive Map"
+              className="p-2 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm transition-all"
+            >
+              <Navigation size={15} />
+              <span className="hidden sm:inline">Fullscreen Map</span>
+            </Link>
           </div>
         </div>
 

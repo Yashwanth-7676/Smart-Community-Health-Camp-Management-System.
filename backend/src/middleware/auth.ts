@@ -83,7 +83,10 @@ export const authorize = (...roles: (string | string[])[]) => {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const userRole = (req.user.role || '').toUpperCase();
+    const isAllowed = allowedRoles.some((r) => r.toUpperCase() === userRole);
+
+    if (!isAllowed) {
       res.status(403).json({
         success: false,
         message: `Access denied. Required role: ${allowedRoles.join(' or ')}. Your role: ${req.user.role}`,

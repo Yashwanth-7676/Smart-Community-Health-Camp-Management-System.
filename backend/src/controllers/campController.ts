@@ -99,6 +99,255 @@ export const getCamps = async (req: Request, res: Response, next: NextFunction):
 };
 
 /**
+ * GET /api/v1/camps/map
+ * Retrieve all camps for full-screen interactive discovery map with coordinate validation and filters
+ */
+export const getMapCamps = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      search,
+      status,
+      service,
+      isFree,
+      hasSlots,
+      dateFrom,
+      dateTo,
+      bounds, // minLat,minLng,maxLat,maxLng
+    } = req.query;
+
+    let camps: any[] = [];
+
+    try {
+      const where: any = {};
+      if (status && status !== 'all') {
+        where.status = status;
+      }
+      if (search) {
+        const s = String(search).trim();
+        where.OR = [
+          { name: { contains: s, mode: 'insensitive' } },
+          { location: { contains: s, mode: 'insensitive' } },
+          { address: { contains: s, mode: 'insensitive' } },
+          { description: { contains: s, mode: 'insensitive' } },
+        ];
+      }
+      if (service && service !== 'all') {
+        where.services = { has: String(service) };
+      }
+      if (dateFrom || dateTo) {
+        where.startDate = {};
+        if (dateFrom) where.startDate.gte = new Date(String(dateFrom));
+        if (dateTo) where.startDate.lte = new Date(String(dateTo));
+      }
+
+      camps = await prisma.camp.findMany({
+        where,
+        include: {
+          _count: { select: { appointments: true, inventory: true } },
+        },
+        orderBy: { startDate: 'asc' },
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        camps = [...DEMO_CAMPS];
+      } else {
+        throw dbErr;
+      }
+    }
+
+    if (!camps || camps.length === 0) {
+      camps = [...DEMO_CAMPS];
+    }
+
+    // Filter in-memory for comprehensive flexibility (supporting mock store and advanced criteria)
+    const filtered = camps.filter((camp) => {
+      // 1. Strict Coordinate Validation
+      const lat = Number(camp.latitude);
+      const lng = Number(camp.longitude);
+      const isValidCoord =
+        camp.latitude !== null &&
+        camp.latitude !== undefined &&
+        camp.longitude !== null &&
+        camp.longitude !== undefined &&
+        !isNaN(lat) &&
+        !isNaN(lng) &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180 &&
+        !(lat === 0 && lng === 0);
+
+      if (!isValidCoord) return false;
+
+      // 2. Status filter
+      if (status && status !== 'all') {
+        if (camp.status.toUpperCase() !== String(status).toUpperCase()) return false;
+      }
+
+      // 3. Search query (name, address, location, pincode, service)
+      if (search) {
+        const query = String(search).toLowerCase().trim();
+        const matchesName = (camp.name || '').toLowerCase().includes(query);
+        const matchesLoc = (camp.location || '').toLowerCase().includes(query);
+        const matchesAddr = (camp.address || '').toLowerCase().includes(query);
+        const matchesDesc = (camp.description || '').toLowerCase().includes(query);
+        const matchesService = Array.isArray(camp.services) && camp.services.some((s: string) => s.toLowerCase().includes(query));
+        if (!matchesName && !matchesLoc && !matchesAddr && !matchesDesc && !matchesService) {
+          return false;
+        }
+      }
+
+      // 4. Service filter
+      if (service && service !== 'all') {
+        const targetService = String(service).toLowerCase();
+        const hasService = Array.isArray(camp.services) && camp.services.some((s: string) => s.toLowerCase().includes(targetService));
+        if (!hasService) return false;
+      }
+
+      // 5. Available slots filter
+      const registered = camp.registered ?? camp._count?.appointments ?? 0;
+      const capacity = camp.capacity || 100;
+      if (hasSlots === 'true') {
+        if (registered >= capacity) return false;
+      }
+
+      // 6. Free filter
+      if (isFree === 'true') {
+        if (camp.isFree === false) return false;
+      }
+
+      // 7. Date range filter
+      if (dateFrom) {
+        const dFrom = new Date(String(dateFrom)).getTime();
+        const cStart = new Date(camp.startDate).getTime();
+        if (cStart < dFrom) return false;
+      }
+      if (dateTo) {
+        const dTo = new Date(String(dateTo)).getTime();
+        const cStart = new Date(camp.startDate).getTime();
+        if (cStart > dTo) return false;
+      }
+
+      // 8. Viewport bounding box filter (minLat, minLng, maxLat, maxLng)
+      if (bounds) {
+        const parts = String(bounds).split(',').map(Number);
+        if (parts.length === 4 && !parts.some(isNaN)) {
+          const [minLat, minLng, maxLat, maxLng] = parts;
+          if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    // Structure mapped output
+    const mapped = filtered.map((c) => {
+      const registered = c.registered ?? c._count?.appointments ?? 0;
+      const capacity = c.capacity || 100;
+      const availableSlots = Math.max(0, capacity - registered);
+      const isFullyBooked = registered >= capacity;
+
+      return {
+        id: c.id,
+        name: c.name,
+        location: c.location,
+        address: c.address,
+        latitude: Number(c.latitude),
+        longitude: Number(c.longitude),
+        startDate: c.startDate,
+        endDate: c.endDate,
+        status: c.status,
+        capacity,
+        registered,
+        availableSlots,
+        isFullyBooked,
+        isFree: c.isFree !== false,
+        feeLabel: c.isFree === false ? '₹50 (Registration Fee)' : 'Free Public Care',
+        services: c.services || ['General Medicine'],
+        description: c.description || 'Community health screening and consultation camp.',
+        operationalHours: '08:30 AM - 05:30 PM',
+        coordinatesValid: true,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        camps: mapped,
+        totalFound: mapped.length,
+        summary: {
+          upcoming: mapped.filter((c) => c.status === 'UPCOMING').length,
+          ongoing: mapped.filter((c) => c.status === 'ONGOING').length,
+          completed: mapped.filter((c) => c.status === 'COMPLETED').length,
+          cancelled: mapped.filter((c) => c.status === 'CANCELLED').length,
+          fullyBooked: mapped.filter((c) => c.isFullyBooked).length,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/camps/:id/location
+ * Administrator confirms or updates map pin coordinates for a camp
+ */
+export const updateCampLocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude, address } = req.body;
+
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw new AppError('Invalid coordinates. Latitude must be between -90 and 90, Longitude between -180 and 180.', 400, 'INVALID_COORDINATES');
+    }
+
+    let updated: any;
+    try {
+      const existing = await prisma.camp.findUnique({ where: { id } });
+      if (!existing) {
+        throw new AppError('Camp not found', 404, 'NOT_FOUND');
+      }
+
+      updated = await prisma.camp.update({
+        where: { id },
+        data: {
+          latitude: lat,
+          longitude: lng,
+          ...(address ? { address } : {}),
+        },
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        const demo = DEMO_CAMPS.find((c) => c.id === id);
+        if (!demo) {
+          throw new AppError('Camp not found', 404, 'NOT_FOUND');
+        }
+        demo.latitude = lat;
+        demo.longitude = lng;
+        if (address) demo.address = address;
+        updated = demo;
+      } else {
+        throw dbErr;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Camp coordinates successfully updated and verified on map.',
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/camps/:id
  * Get a single camp by ID
  */
@@ -247,38 +496,51 @@ export const updateCamp = async (req: Request, res: Response, next: NextFunction
     const { id } = req.params;
     const updates = req.body as UpdateCampDto;
 
-    const existingCamp = await prisma.camp.findUnique({ where: { id } });
-    if (!existingCamp) {
-      throw new AppError('Camp not found', 404, 'NOT_FOUND');
-    }
-
-    if (existingCamp.status === CampStatus.COMPLETED || existingCamp.status === CampStatus.CANCELLED) {
-      throw new AppError('Cannot update a completed or cancelled camp', 400, 'INVALID_OPERATION');
-    }
-
     const updateData: Record<string, unknown> = {};
-
-    if (updates.name) updateData.name = updates.name;
-    if (updates.location) updateData.location = updates.location;
-    if (updates.address) updateData.address = updates.address;
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.location !== undefined) updateData.location = updates.location;
+    if (updates.address !== undefined) updateData.address = updates.address;
     if (updates.latitude !== undefined) updateData.latitude = updates.latitude;
     if (updates.longitude !== undefined) updateData.longitude = updates.longitude;
-    if (updates.startDate) updateData.startDate = new Date(updates.startDate);
-    if (updates.endDate) updateData.endDate = new Date(updates.endDate);
+    if (updates.startDate !== undefined) updateData.startDate = new Date(updates.startDate);
+    if (updates.endDate !== undefined) updateData.endDate = new Date(updates.endDate);
     if (updates.capacity !== undefined) updateData.capacity = updates.capacity;
-    if (updates.services) updateData.services = updates.services;
+    if (updates.services !== undefined) updateData.services = updates.services;
     if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.status) updateData.status = updates.status;
+    if (updates.status !== undefined) updateData.status = updates.status;
 
-    const camp = await prisma.camp.update({
-      where: { id },
-      data: updateData,
-      include: {
-        createdBy: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+    let camp: any;
+    try {
+      const existingCamp = await prisma.camp.findUnique({ where: { id } });
+      if (!existingCamp) {
+        throw new AppError('Camp not found', 404, 'NOT_FOUND');
+      }
+
+      if (existingCamp.status === CampStatus.COMPLETED || existingCamp.status === CampStatus.CANCELLED) {
+        throw new AppError('Cannot update a completed or cancelled camp', 400, 'INVALID_OPERATION');
+      }
+
+      camp = await prisma.camp.update({
+        where: { id },
+        data: updateData,
+        include: {
+          createdBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
         },
-      },
-    });
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        const demoCamp = DEMO_CAMPS.find((c) => c.id === id);
+        if (!demoCamp) {
+          throw new AppError('Camp not found', 404, 'NOT_FOUND');
+        }
+        Object.assign(demoCamp, updateData);
+        camp = demoCamp;
+      } else {
+        throw dbErr;
+      }
+    }
 
     res.json({
       success: true,

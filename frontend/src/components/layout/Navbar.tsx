@@ -56,6 +56,7 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { label: t('nav.home', 'Home'), path: '/' },
     { label: t('nav.camps', 'Health Camps'), path: '/camps' },
+    { label: 'Camp Map', path: '/camp-map' },
     { label: 'Command Center', path: '/command-center' },
     { label: '3D Anatomy', path: '/education' },
     { label: '3D Digital Twin', path: '/digital-twin' },

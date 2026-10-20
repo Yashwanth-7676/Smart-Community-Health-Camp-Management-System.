@@ -46,6 +46,7 @@ const MedicalReportReaderPage = lazy(() => import('@/pages/MedicalReportReaderPa
 const CommandCenter = lazy(() => import('@/pages/CommandCenter'));
 const HealthEducationPage = lazy(() => import('@/pages/HealthEducationPage'));
 const SharedHealthCardPage = lazy(() => import('@/pages/SharedHealthCardPage'));
+const CampMapPage = lazy(() => import('@/pages/camps/CampMapPage'));
 import PWAInstallBanner from '@/components/common/PWAInstallBanner';
 
 export const App: React.FC = () => {
@@ -60,6 +61,8 @@ export const App: React.FC = () => {
             <Route path="/services" element={<Services />} />
             <Route path="/camps" element={<CampDiscovery />} />
             <Route path="/camps/:id" element={<CampDetail />} />
+            <Route path="/camp-map" element={<CampMapPage />} />
+            <Route path="/camps/map" element={<Navigate to="/camp-map" replace />} />
             <Route path="/awareness" element={<HealthAwareness />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
