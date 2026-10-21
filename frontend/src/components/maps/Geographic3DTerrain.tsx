@@ -1,7 +1,6 @@
 // src/components/maps/Geographic3DTerrain.tsx
 import React, { useMemo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { useThree } from '@react-three/fiber';
 
 export interface MapProjectionConfig {
   centerLat: number;
@@ -52,8 +51,18 @@ export function projectLatLngTo3D(
   return [x, 0, z];
 }
 
+export interface MapLayerConfig {
+  camps: boolean;
+  districts: boolean;
+  heatmap: boolean;
+  hospitals: boolean;
+  highways: boolean;
+}
+
 interface Geographic3DTerrainProps {
   regionFocus: 'karnataka' | 'india';
+  layers?: MapLayerConfig;
+  campsData?: Array<{ latitude: number; longitude: number; registered?: number; capacity?: number }>;
 }
 
 interface GeoHub {
@@ -169,7 +178,17 @@ const KARNATAKA_BOUNDARY: Array<[number, number]> = [
   [14.81, 74.13], // Karwar
 ];
 
-export const Geographic3DTerrain: React.FC<Geographic3DTerrainProps> = ({ regionFocus }) => {
+export const Geographic3DTerrain: React.FC<Geographic3DTerrainProps> = ({
+  regionFocus,
+  layers = {
+    camps: true,
+    districts: true,
+    heatmap: true,
+    hospitals: true,
+    highways: true,
+  },
+  campsData = [],
+}) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const textureRef = useRef<THREE.CanvasTexture | null>(null);
 
@@ -246,8 +265,8 @@ export const Geographic3DTerrain: React.FC<Geographic3DTerrainProps> = ({ region
     }
     ctx.setLineDash([]);
 
-    // 4. State Territory Polygon Fill
-    if (regionFocus === 'karnataka') {
+    // 4. Territory Boundary Lines
+    if (layers.districts && regionFocus === 'karnataka') {
       ctx.beginPath();
       KARNATAKA_BOUNDARY.forEach(([lat, lng], idx) => {
         const x = toCanvasX(lng);
@@ -271,45 +290,71 @@ export const Geographic3DTerrain: React.FC<Geographic3DTerrainProps> = ({ region
     }
 
     // 5. Road Transportation Corridors (Highways connecting camps)
-    HIGHWAY_CORRIDORS.forEach((corridor) => {
-      ctx.beginPath();
-      corridor.forEach(([lat, lng], i) => {
-        const x = toCanvasX(lng);
-        const y = toCanvasY(lat);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+    if (layers.highways) {
+      HIGHWAY_CORRIDORS.forEach((corridor) => {
+        ctx.beginPath();
+        corridor.forEach(([lat, lng], i) => {
+          const x = toCanvasX(lng);
+          const y = toCanvasY(lat);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = 'rgba(14, 165, 233, 0.45)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
       });
-      ctx.strokeStyle = 'rgba(14, 165, 233, 0.45)';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-    });
+    }
 
-    // 6. Verified District Node Beacons & Typography
-    const hubs = regionFocus === 'karnataka' ? KARNATAKA_DISTRICT_HUBS : INDIA_METRO_HUBS;
-    hubs.forEach((hub) => {
-      const hx = toCanvasX(hub.lng);
-      const hy = toCanvasY(hub.lat);
+    // 6. Camp Coverage Heatmap Layer
+    if (layers.heatmap && campsData && campsData.length > 0) {
+      campsData.forEach((camp) => {
+        if (!camp.latitude || !camp.longitude) return;
+        const cx = toCanvasX(camp.longitude);
+        const cy = toCanvasY(camp.latitude);
+        const reg = camp.registered || 60;
+        const radius = Math.max(50, Math.min(140, 50 + (reg / 150) * 80));
 
-      // District Hub Center Dot
-      ctx.beginPath();
-      ctx.arc(hx, hy, hub.isCapital ? 6 : 4, 0, Math.PI * 2);
-      ctx.fillStyle = hub.isCapital ? '#38bdf8' : '#06b6d4';
-      ctx.fill();
+        const heatGrad = ctx.createRadialGradient(cx, cy, 6, cx, cy, radius);
+        heatGrad.addColorStop(0, 'rgba(245, 158, 11, 0.45)'); // Core intensity
+        heatGrad.addColorStop(0.35, 'rgba(16, 185, 129, 0.28)'); // Emerald mid
+        heatGrad.addColorStop(0.7, 'rgba(6, 182, 212, 0.15)'); // Cyan edge
+        heatGrad.addColorStop(1, 'rgba(6, 182, 212, 0)'); // Fade
 
-      // Outer Ring
-      ctx.beginPath();
-      ctx.arc(hx, hy, hub.isCapital ? 14 : 10, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+        ctx.fillStyle = heatGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
 
-      // Label Typography
-      ctx.fillStyle = hub.isCapital ? '#ffffff' : '#94a3b8';
-      ctx.font = hub.isCapital ? 'bold 22px system-ui, sans-serif' : '500 18px system-ui, sans-serif';
-      ctx.fillText(hub.name, hx + 14, hy + 6);
-    });
+    // 7. Verified District Node Beacons & Typography
+    if (layers.districts) {
+      const hubs = regionFocus === 'karnataka' ? KARNATAKA_DISTRICT_HUBS : INDIA_METRO_HUBS;
+      hubs.forEach((hub) => {
+        const hx = toCanvasX(hub.lng);
+        const hy = toCanvasY(hub.lat);
 
-    // 7. Map Attribution & Cartographic Scale
+        // District Hub Center Dot
+        ctx.beginPath();
+        ctx.arc(hx, hy, hub.isCapital ? 6 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = hub.isCapital ? '#38bdf8' : '#06b6d4';
+        ctx.fill();
+
+        // Outer Ring
+        ctx.beginPath();
+        ctx.arc(hx, hy, hub.isCapital ? 14 : 10, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Label Typography
+        ctx.fillStyle = hub.isCapital ? '#ffffff' : '#94a3b8';
+        ctx.font = hub.isCapital ? 'bold 22px system-ui, sans-serif' : '500 18px system-ui, sans-serif';
+        ctx.fillText(hub.name, hx + 14, hy + 6);
+      });
+    }
+
+    // 8. Map Attribution & Cartographic Scale
     ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
     ctx.font = '16px monospace';
     ctx.fillText('SMART HEALTHCAMP 3D CARTOGRAPHIC ENGINE', 40, 50);
@@ -323,16 +368,12 @@ export const Geographic3DTerrain: React.FC<Geographic3DTerrainProps> = ({ region
       const yStart = regionFocus === 'karnataka' ? 57 : 13;
       const yEnd = regionFocus === 'karnataka' ? 60 : 16;
 
-      let loadedCount = 0;
-      const totalTiles = (xEnd - xStart + 1) * (yEnd - yStart + 1);
-
       for (let tx = xStart; tx <= xEnd; tx++) {
         for (let ty = yStart; ty <= yEnd; ty++) {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.src = `https://a.basemaps.cartocdn.com/dark_all/${zoom}/${tx}/${ty}.png`;
           img.onload = () => {
-            loadedCount++;
             if (textureRef.current) {
               textureRef.current.needsUpdate = true;
             }
@@ -355,7 +396,7 @@ export const Geographic3DTerrain: React.FC<Geographic3DTerrainProps> = ({ region
     textureRef.current = tex;
 
     return tex;
-  }, [regionFocus]);
+  }, [regionFocus, layers, campsData]);
 
   useEffect(() => {
     if (textureRef.current) {

@@ -867,10 +867,19 @@ export const CampMapPage: React.FC = () => {
                   <Camp3DMap
                     camps={processedCamps}
                     selectedCamp={selectedCamp}
-                    onSelectCamp={handleSelectCamp}
+                    onSelectCamp={(camp) => {
+                      if (camp) handleSelectCamp(camp);
+                      else setSelectedCamp(null);
+                    }}
                     userCoords={originCoords}
                     onBookCamp={handleBookCamp}
                     onGetDirections={handleGetDirections}
+                    onViewDetails={(camp) => {
+                      setSelectedCamp(camp);
+                      if (cardRefs.current[camp.id]) {
+                        cardRefs.current[camp.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }
+                    }}
                     onToggleDimension={() => setMapDimension(mapDimension === '3D' ? '2D' : '3D')}
                     mapDimension={mapDimension}
                     isLive={liveSyncEnabled}
@@ -879,6 +888,17 @@ export const CampMapPage: React.FC = () => {
                     isFullscreen={isFullscreen}
                     onToggleFullscreen={toggleFullscreen}
                     onTriggerLocation={handleRequestGPS}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    selectedStatus={selectedStatus}
+                    onStatusChange={setSelectedStatus}
+                    selectedService={selectedService}
+                    onServiceChange={setSelectedService}
+                    freeOnly={freeOnly}
+                    onFreeOnlyChange={setFreeOnly}
+                    slotsOnly={slotsOnly}
+                    onSlotsOnlyChange={setSlotsOnly}
+                    availableServices={availableServicesList}
                   />
                 </React.Suspense>
               ) : (
