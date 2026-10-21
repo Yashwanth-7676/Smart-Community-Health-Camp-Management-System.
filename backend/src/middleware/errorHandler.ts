@@ -29,6 +29,21 @@ export const errorHandler = (
   let statusCode = 500;
   let message = 'Internal server error';
   let code: string | undefined;
+  const requestError = err as Error & { status?: number; type?: string };
+
+  // express.json surfaces malformed payloads before a route handler runs.
+  // Return a client error instead of presenting it as a server failure.
+  if (requestError.type === 'entity.parse.failed' || requestError instanceof SyntaxError && requestError.status === 400) {
+    statusCode = 400;
+    message = 'Malformed JSON request body.';
+    code = 'INVALID_JSON';
+  }
+
+  if (requestError.type === 'entity.too.large') {
+    statusCode = 413;
+    message = 'Request body is too large.';
+    code = 'PAYLOAD_TOO_LARGE';
+  }
 
   // Handle known AppError
   if (err instanceof AppError) {

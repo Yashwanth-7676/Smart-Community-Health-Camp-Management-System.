@@ -189,8 +189,15 @@ export const getReportsByPatientId = async (req: Request, res: Response, next: N
 
     let reports: any[] = [];
     try {
+      const where: Record<string, string> = { patientId: id };
+      // A doctor may access only reports they authored. Broader patient access
+      // must happen through an explicit, auditable share-pass workflow.
+      if (user.role === Role.DOCTOR) {
+        where.doctorId = user.userId;
+      }
+
       reports = await prisma.medicalReport.findMany({
-        where: { patientId: id },
+        where,
         include: {
           doctor: {
             select: {
@@ -208,7 +215,7 @@ export const getReportsByPatientId = async (req: Request, res: Response, next: N
       });
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
-        reports = DEMO_REPORTS.filter((r) => r.patientId === id || id === 'user-admin-1' || id === 'user-patient-1');
+        reports = DEMO_REPORTS.filter((r) => r.patientId === id && (user.role !== Role.DOCTOR || r.doctorId === user.userId));
       } else {
         throw dbErr;
       }
@@ -260,7 +267,7 @@ export const getPrintableReport = async (req: Request, res: Response, next: Next
       });
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
-        report = DEMO_REPORTS.find((r) => r.id === id) || DEMO_REPORTS[0];
+        report = DEMO_REPORTS.find((r) => r.id === id);
       } else {
         throw dbErr;
       }
@@ -270,7 +277,11 @@ export const getPrintableReport = async (req: Request, res: Response, next: Next
       throw new AppError('Medical report not found', 404);
     }
 
-    if (user?.role === Role.PATIENT && user.userId !== report.patientId) {
+    const isOwner = report.patientId === user?.userId;
+    const isTreatingDoctor = report.doctorId === user?.userId;
+    const isAdmin = user?.role === Role.ADMIN;
+
+    if (!isOwner && !isTreatingDoctor && !isAdmin) {
       throw new AppError('Unauthorized', 403);
     }
 

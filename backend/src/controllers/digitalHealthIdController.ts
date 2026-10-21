@@ -34,7 +34,7 @@ export interface AccessHistoryEvent {
   accessedAt: string;
 }
 
-export const EPHEMERAL_PASS_STORE: EphemeralSharePass[] = [
+export const EPHEMERAL_PASS_STORE: EphemeralSharePass[] = process.env.NODE_ENV === 'production' ? [] : [
   {
     passId: 'pass-demo-1',
     patientId: 'user-patient-1',
@@ -48,7 +48,7 @@ export const EPHEMERAL_PASS_STORE: EphemeralSharePass[] = [
   },
 ];
 
-export const ACCESS_HISTORY_STORE: AccessHistoryEvent[] = [
+export const ACCESS_HISTORY_STORE: AccessHistoryEvent[] = process.env.NODE_ENV === 'production' ? [] : [
   {
     id: 'acc-hist-1',
     patientId: 'user-patient-1',
@@ -77,6 +77,9 @@ export function generateSHID(patientId: string, creationYear = new Date().getFul
 export const getMyDigitalHealthId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const user = req.user!;
+    if (user.role !== Role.PATIENT) {
+      throw new AppError('Only patients can access a personal health card', 403, 'FORBIDDEN');
+    }
     let patientUser: any = null;
     let patientProfile: any = null;
 
@@ -88,16 +91,15 @@ export const getMyDigitalHealthId = async (req: Request, res: Response, next: Ne
       patientProfile = patientUser?.patientProfile;
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
-        patientUser = DEMO_USERS.find((u) => u.id === user.userId || u.role === 'PATIENT');
+        patientUser = DEMO_USERS.find((u) => u.id === user.userId || u.email.toLowerCase() === user.email.toLowerCase());
         patientProfile = patientUser?.patientProfile;
       } else {
         throw dbErr;
       }
     }
 
-    if (!patientUser) {
-      patientUser = DEMO_USERS.find((u) => u.role === 'PATIENT') || DEMO_USERS[3];
-      patientProfile = patientUser?.patientProfile;
+    if (!patientUser || patientUser.id !== user.userId) {
+      throw new AppError('Patient profile not found', 404, 'NOT_FOUND');
     }
 
     const shid = generateSHID(patientUser.id);
@@ -128,6 +130,8 @@ export const getMyDigitalHealthId = async (req: Request, res: Response, next: Ne
       },
     });
 
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     res.json({
       success: true,
       data: {
@@ -194,6 +198,8 @@ export const createSharePass = async (req: Request, res: Response, next: NextFun
       req.headers['user-agent']
     );
 
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     res.json({
       success: true,
       message: 'Temporary health pass generated successfully',
@@ -283,17 +289,14 @@ export const accessSharedHealthPassport = async (req: Request, res: Response, ne
     };
 
     if (pass.allowedSections.includes('VITALS')) {
-      filteredData.vitals = {
-        bloodPressure: '124/82 mmHg',
-        heartRate: '74 bpm',
-        bloodSugar: '108 mg/dL',
-        bmi: '22.4',
-        lastChecked: new Date(Date.now() - 3 * 86400000).toISOString(),
-      };
+      const latestVitals = reports.flatMap((report) => report.vitalSigns || [])[0];
+      if (latestVitals) {
+        filteredData.vitals = latestVitals;
+      }
     }
 
     if (pass.allowedSections.includes('ALLERGIES')) {
-      filteredData.allergies = patient.patientProfile?.allergies || ['Penicillin', 'Sulfa drugs'];
+      filteredData.allergies = patient.patientProfile?.allergies || [];
     }
 
     if (pass.allowedSections.includes('REPORTS')) {
@@ -306,6 +309,8 @@ export const accessSharedHealthPassport = async (req: Request, res: Response, ne
       }));
     }
 
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     res.json({
       success: true,
       data: filteredData,
@@ -343,6 +348,7 @@ export const revokeSharePass = async (req: Request, res: Response, next: NextFun
       req.headers['user-agent']
     );
 
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       message: 'Share pass successfully revoked. Access has been terminated immediately.',
@@ -363,21 +369,12 @@ export const getMyAccessHistory = async (req: Request, res: Response, next: Next
     const history = ACCESS_HISTORY_STORE.filter((h) => h.patientId === user.userId);
     const activePasses = EPHEMERAL_PASS_STORE.filter((p) => p.patientId === user.userId);
 
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       data: {
         activePasses,
-        accessHistory: history.length > 0 ? history : [
-          {
-            id: 'acc-hist-demo',
-            patientId: user.userId,
-            accessorName: 'Dr. Priya Sharma',
-            accessorRole: 'DOCTOR',
-            ipAddress: '127.0.0.1',
-            sectionsViewed: ['VITALS', 'REPORTS'],
-            accessedAt: new Date(Date.now() - 3600000).toISOString(),
-          },
-        ],
+        accessHistory: history,
       },
     });
   } catch (error) {

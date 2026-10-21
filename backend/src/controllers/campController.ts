@@ -87,6 +87,8 @@ export const getCamps = async (req: Request, res: Response, next: NextFunction):
       }
     }
 
+    // Public camp discovery is safe to share-cache briefly; it contains no
+    // patient or booking details.
     res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
     res.json({
       success: true,
@@ -417,7 +419,7 @@ export const updateCampLocation = async (req: Request, res: Response, next: Next
       }
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       message: 'Camp coordinates successfully updated and verified on map.',
@@ -563,8 +565,8 @@ export const getRegionalAnalytics = async (req: Request, res: Response, next: Ne
     const overallCapacity = regionalData.reduce((acc, r) => acc + r.totalCapacity, 0);
     const overallRegistered = regionalData.reduce((acc, r) => acc + r.totalRegistered, 0);
 
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+    // Regional analytics are authenticated operational data, never public cache data.
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       data: {
@@ -783,7 +785,7 @@ export const updateCamp = async (req: Request, res: Response, next: NextFunction
       }
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       message: 'Camp updated successfully',
@@ -829,7 +831,7 @@ export const deleteCamp = async (req: Request, res: Response, next: NextFunction
       }
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       message: 'Camp cancelled successfully',
@@ -893,7 +895,9 @@ export const getCampAppointments = async (req: Request, res: Response, next: Nex
       }
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=45');
+    // Appointment results include direct patient identifiers and must not be
+    // stored by a browser or a shared intermediary.
+    res.setHeader('Cache-Control', 'private, no-store');
     res.json({
       success: true,
       message: 'Camp appointments retrieved successfully',

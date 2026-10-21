@@ -30,7 +30,7 @@ router.post(
 );
 
 router.post('/', authorize('DOCTOR'), createReport);
-router.get('/patient/:id', getReportsByPatientId);
+router.get('/patient/:id', authorize('PATIENT', 'DOCTOR', 'ADMIN'), getReportsByPatientId);
 router.get('/print/:id', getPrintableReport);
 router.get('/:id', getReportById);
 

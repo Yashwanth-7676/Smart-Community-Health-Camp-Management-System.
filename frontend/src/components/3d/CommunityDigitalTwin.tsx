@@ -340,6 +340,15 @@ export const CommunityDigitalTwin: React.FC = () => {
   const [activeMetric, setActiveMetric] = useState<'attendance' | 'coverage' | 'healthIndex'>('attendance');
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [simulationOpen, setSimulationOpen] = useState(false);
+  const shouldReduceGraphics = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    const device = navigator as Navigator & { deviceMemory?: number };
+    return (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      (typeof device.deviceMemory === 'number' && device.deviceMemory <= 4) ||
+      (typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency <= 4)
+    );
+  }, []);
 
   // Simulation inputs
   const [simDoctors, setSimDoctors] = useState(2);
@@ -478,7 +487,16 @@ export const CommunityDigitalTwin: React.FC = () => {
           {viewMode === '3d' ? (
             <ThreeErrorBoundary>
               <div className="w-full h-[520px] relative">
-                <Canvas camera={{ position: [0, 5, 8], fov: 45 }}>
+                <Canvas
+                  dpr={shouldReduceGraphics ? [1, 1] : [1, 1.5]}
+                  shadows={false}
+                  gl={{
+                    antialias: !shouldReduceGraphics,
+                    powerPreference: shouldReduceGraphics ? 'low-power' : 'high-performance',
+                    stencil: false,
+                  }}
+                  camera={{ position: [0, 5, 8], fov: 45 }}
+                >
                   <ambientLight intensity={0.65} />
                   <pointLight position={[10, 15, 10]} intensity={1.2} />
                   <pointLight position={[-10, 8, -10]} intensity={0.5} color="#06b6d4" />

@@ -191,6 +191,15 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     []
   );
+  const shouldReduceGraphics = useMemo(() => {
+    if (typeof navigator === 'undefined') return prefersReducedMotion;
+    const device = navigator as Navigator & { deviceMemory?: number };
+    return (
+      prefersReducedMotion ||
+      (typeof device.deviceMemory === 'number' && device.deviceMemory <= 4) ||
+      (typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency <= 4)
+    );
+  }, [prefersReducedMotion]);
 
   const activeProjection = regionFocus === 'karnataka' ? KARNATAKA_PROJECTION : INDIA_PROJECTION;
 
@@ -622,6 +631,15 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
         }
       >
         <Canvas
+          // Cap pixel density and antialiasing on constrained devices while
+          // retaining the geographic scene, markers, and map interactions.
+          dpr={shouldReduceGraphics ? [1, 1] : [1, 1.5]}
+          shadows={false}
+          gl={{
+            antialias: !shouldReduceGraphics,
+            powerPreference: shouldReduceGraphics ? 'low-power' : 'high-performance',
+            stencil: false,
+          }}
           camera={{
             position: regionFocus === 'karnataka' ? [0, 18, 22] : [0, 32, 28],
             fov: 42,
@@ -653,7 +671,7 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
             cameraPreset={cameraPreset}
             bearingAngle={bearingAngle}
             controlsRef={controlsRef}
-            prefersReducedMotion={prefersReducedMotion}
+            prefersReducedMotion={shouldReduceGraphics}
           />
 
           {/* Real Geographic Map Ground Plane with Cartographic Geography */}
@@ -673,7 +691,7 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
                 isSelected={selectedCamp?.id === camp.id}
                 onSelect={() => onSelectCamp(camp)}
                 projection={activeProjection}
-                prefersReducedMotion={prefersReducedMotion}
+                prefersReducedMotion={shouldReduceGraphics}
               />
             ))}
 

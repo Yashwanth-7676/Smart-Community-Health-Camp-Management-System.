@@ -36,7 +36,7 @@ export const generateMedicalReportPDF = async (req: Request, res: Response, next
       });
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
-        report = DEMO_REPORTS.find((r) => r.id === reportId) || DEMO_REPORTS[0];
+        report = DEMO_REPORTS.find((r) => r.id === reportId) || null;
       } else {
         throw dbErr;
       }
@@ -60,6 +60,7 @@ export const generateMedicalReportPDF = async (req: Request, res: Response, next
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="medical_report_${reportId}.pdf"`);
+    res.setHeader('Cache-Control', 'private, no-store');
 
     doc.pipe(res);
 

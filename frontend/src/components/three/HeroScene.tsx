@@ -10,6 +10,16 @@ function useReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function useReducedGraphics(reducedMotion: boolean): boolean {
+  if (typeof navigator === 'undefined') return reducedMotion;
+  const device = navigator as Navigator & { deviceMemory?: number };
+  return (
+    reducedMotion ||
+    (typeof device.deviceMemory === 'number' && device.deviceMemory <= 4) ||
+    (typeof navigator.hardwareConcurrency === 'number' && navigator.hardwareConcurrency <= 4)
+  );
+}
+
 // ─── 3D Animated Heartbeat (ECG) Wave ────────────────────────────────────────
 const HeartbeatWave3D: React.FC<{ reducedMotion: boolean }> = ({ reducedMotion }) => {
   const lineRef = useRef<THREE.Line>(null);
@@ -326,17 +336,18 @@ const SceneContent: React.FC<{ reducedMotion: boolean }> = ({ reducedMotion }) =
 // ─── Main Export ─────────────────────────────────────────────────────────────
 export const HeroScene: React.FC<{ className?: string }> = ({ className = '' }) => {
   const reducedMotion = useReducedMotion();
+  const shouldReduceGraphics = useReducedGraphics(reducedMotion);
 
   return (
     <div className={`w-full h-full relative ${className}`}>
       <ThreeErrorBoundary>
         <Canvas
           shadows={false}
-          dpr={[1, 1.5]}
+          dpr={shouldReduceGraphics ? [1, 1] : [1, 1.5]}
           gl={{
-            antialias: true,
+            antialias: !shouldReduceGraphics,
             alpha: true,
-            powerPreference: 'high-performance',
+            powerPreference: shouldReduceGraphics ? 'low-power' : 'high-performance',
             stencil: false,
             depth: true,
           }}

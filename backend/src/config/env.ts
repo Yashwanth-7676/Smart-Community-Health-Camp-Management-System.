@@ -4,6 +4,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Deployment must never silently fall back to example database credentials or
+// predictable signing keys. Development keeps its local defaults so the demo
+// remains easy to run, while production fails before accepting traffic.
+if (process.env.NODE_ENV === 'production') {
+  const requiredProductionVariables = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'CORS_ORIGIN'];
+  const missing = requiredProductionVariables.filter((key) => !process.env[key]?.trim());
+  if (missing.length > 0) {
+    throw new Error(`Missing required production environment variables: ${missing.join(', ')}`);
+  }
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),

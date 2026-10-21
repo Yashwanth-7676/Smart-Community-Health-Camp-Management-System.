@@ -67,8 +67,8 @@ export const generateRegistrationId = (prefix: string): string => {
  * @returns Object with skip and take values for Prisma
  */
 export const getPagination = (page: number, limit: number): { skip: number; take: number } => {
-  const safeLimit = Math.min(Math.max(limit, 1), 100);
-  const safePage = Math.max(page, 1);
+  const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 100) : 10;
+  const safePage = Number.isFinite(page) ? Math.max(Math.floor(page), 1) : 1;
   return {
     skip: (safePage - 1) * safeLimit,
     take: safeLimit,
@@ -83,14 +83,16 @@ export const getPagination = (page: number, limit: number): { skip: number; take
  * @returns Pagination metadata object
  */
 export const buildPaginationMeta = (total: number, page: number, limit: number) => {
-  const totalPages = Math.ceil(total / limit);
+  const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 100) : 10;
+  const safePage = Number.isFinite(page) ? Math.max(Math.floor(page), 1) : 1;
+  const totalPages = Math.ceil(total / safeLimit);
   return {
     total,
-    page,
-    limit,
+    page: safePage,
+    limit: safeLimit,
     totalPages,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
+    hasNextPage: safePage < totalPages,
+    hasPreviousPage: safePage > 1,
   };
 };
 

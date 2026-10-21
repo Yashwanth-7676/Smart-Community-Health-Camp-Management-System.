@@ -278,3 +278,4 @@ export const CoverageGapExplorerModal: React.FC<CoverageGapExplorerModalProps> =
 };
 
 export default CoverageGapExplorerModal;
+

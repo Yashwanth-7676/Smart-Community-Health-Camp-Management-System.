@@ -4,9 +4,14 @@ import bcrypt from 'bcryptjs';
 import { generateQueueToken } from '../utils/helpers';
 import { AppError } from '../middleware/errorHandler';
 import { isDbConnectionError, DEMO_USERS, DEMO_APPOINTMENTS, DEMO_CAMPS } from '../utils/mockStore';
+import { authenticate, authorize } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 const router = Router();
+
+// Offline batches contain patient identifiers and medical history. Only vetted
+// field staff may submit them after the device reconnects.
+router.use(authenticate, authorize('VOLUNTEER', 'ADMIN'));
 
 /**
  * POST /api/v1/offline/sync
@@ -16,8 +21,8 @@ router.post('/sync', async (req: Request, res: Response, next: NextFunction) => 
   try {
     const { registrations } = req.body;
 
-    if (!registrations || !Array.isArray(registrations)) {
-      throw new AppError('Array of registrations is required', 400);
+    if (!registrations || !Array.isArray(registrations) || registrations.length === 0 || registrations.length > 100) {
+      throw new AppError('A batch of between 1 and 100 registrations is required', 400);
     }
 
     const defaultPassword = await bcrypt.hash('Patient@123', 10);
@@ -39,6 +44,11 @@ router.post('/sync', async (req: Request, res: Response, next: NextFunction) => 
           results.push({ offlineId, status: 'FAILED', error: 'Camp not found' });
           continue;
         }
+
+          if (camp.status === 'COMPLETED' || camp.status === 'CANCELLED' || camp.registered >= camp.capacity) {
+            results.push({ offlineId, status: 'FAILED', error: 'Camp is not accepting registrations' });
+            continue;
+          }
 
         const outcome = await prisma.$transaction(async (tx) => {
           let user = await tx.user.findFirst({

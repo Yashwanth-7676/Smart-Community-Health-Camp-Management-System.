@@ -89,9 +89,16 @@ export const getAppointments = async (req: Request, res: Response, next: NextFun
  */
 export const createAppointment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { patientId, campId, doctorId, date, timeSlot, notes } = req.body as CreateAppointmentDto;
+    const { patientId: requestedPatientId, campId, doctorId, date, timeSlot, notes } = req.body as CreateAppointmentDto;
+    // A patient can only create an appointment for their own account. Administrators
+    // retain the ability to register a patient on their behalf.
+    const patientId = req.user!.role === 'PATIENT' ? req.user!.userId : requestedPatientId;
 
     const appointmentDate = new Date(date);
+
+    if (!patientId || !campId || !timeSlot || Number.isNaN(appointmentDate.getTime())) {
+      throw new AppError('A patient, camp, valid appointment date, and time slot are required', 400, 'VALIDATION_ERROR');
+    }
 
     let fullAppointment: any;
 
@@ -188,7 +195,7 @@ export const createAppointment = async (req: Request, res: Response, next: NextF
         });
 
         return appointment;
-      });
+      }, { isolationLevel: 'Serializable' });
 
       // Fetch full appointment details
       fullAppointment = await prisma.appointment.findUnique({
@@ -275,6 +282,10 @@ export const getAppointmentById = async (req: Request, res: Response, next: Next
       throw new AppError('Access denied', 403, 'FORBIDDEN');
     }
 
+    if (req.user!.role === 'DOCTOR' && appointment.doctorId !== req.user!.userId) {
+      throw new AppError('Access denied', 403, 'FORBIDDEN');
+    }
+
     res.json({
       success: true,
       message: 'Appointment retrieved successfully',
@@ -311,6 +322,10 @@ export const updateAppointment = async (req: Request, res: Response, next: NextF
       if (updates.status && updates.status !== AppointmentStatus.CANCELLED) {
         throw new AppError('Patients can only cancel appointments', 403, 'FORBIDDEN');
       }
+    }
+
+    if (req.user!.role === 'DOCTOR' && appointment.doctorId !== req.user!.userId) {
+      throw new AppError('Access denied', 403, 'FORBIDDEN');
     }
 
     if (appointment.status === AppointmentStatus.COMPLETED) {
@@ -383,6 +398,9 @@ export const getPatientAppointments = async (req: Request, res: Response, next: 
     const { skip, take } = getPagination(pageNum, limitNum);
 
     const where: Record<string, unknown> = { patientId };
+    if (req.user!.role === 'DOCTOR') {
+      where.doctorId = req.user!.userId;
+    }
     if (status) where.status = status;
 
     const [appointments, total] = await Promise.all([

@@ -6,6 +6,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/errorHandler';
 import { generalLimiter } from './middleware/rateLimit';
+import { env } from './config/env';
 
 // Route imports
 import authRoutes from './routes/auth';
@@ -34,6 +35,13 @@ import digitalHealthIdRoutes from './routes/digitalHealthId';
 import aiPlannerRoutes from './routes/aiPlanner';
 
 const app: Application = express();
+const isProduction = env.NODE_ENV === 'production';
+
+// Render and similar hosts terminate TLS before the application. Trust exactly
+// the first proxy in production so rate limits use the real client address.
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
 
 // ========================
 // Security Middleware
@@ -45,9 +53,10 @@ app.use(helmet({
 // ========================
 // CORS Configuration
 // ========================
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173')
+const allowedOrigins = env.CORS_ORIGIN
   .split(',')
-  .map((origin) => origin.trim().replace(/\/$/, ''));
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter((origin) => origin && origin !== '*');
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
@@ -55,9 +64,8 @@ const corsOptions: cors.CorsOptions = {
     if (!origin) return callback(null, true);
     if (
       allowedOrigins.includes(origin) ||
-      allowedOrigins.includes('*') ||
-      /^http:\/\/localhost:\d+$/.test(origin) ||
-      /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)
+      (!isProduction && /^http:\/\/localhost:\d+$/.test(origin)) ||
+      (!isProduction && /^http:\/\/127\.0\.0\.1:\d+$/.test(origin))
     ) {
       return callback(null, true);
     }
@@ -72,11 +80,11 @@ app.use(cors(corsOptions));
 // ========================
 // Logging
 // ========================
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined'));
-} else {
-  app.use(morgan('dev'));
-}
+app.use(morgan(isProduction ? 'combined' : 'dev', {
+  // A share-pass token is a bearer secret embedded in the URL. Keep it out of
+  // application logs, even when access logging is enabled.
+  skip: (req) => req.originalUrl.startsWith('/api/v1/health-id/shared/') || req.originalUrl.startsWith('/api/health-id/shared/'),
+}));
 
 // ========================
 // Body Parsing, Cookies & Compression
