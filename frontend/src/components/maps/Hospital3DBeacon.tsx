@@ -158,3 +158,4 @@ export const Hospital3DBeacon: React.FC<Hospital3DBeaconProps> = ({
 };
 
 export default Hospital3DBeacon;
+

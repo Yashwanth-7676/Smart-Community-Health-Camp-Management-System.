@@ -135,3 +135,4 @@ export const VERIFIED_REFERRAL_HOSPITALS: ReferralHospital[] = [
     specialties: ['General Medicine', 'Cardiology', 'Pediatrics'],
   },
 ];
+

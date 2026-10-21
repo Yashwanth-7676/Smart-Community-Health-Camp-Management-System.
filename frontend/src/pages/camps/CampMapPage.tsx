@@ -1,7 +1,7 @@
 // src/pages/camps/CampMapPage.tsx
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -39,11 +39,13 @@ import {
   ArrowRight,
   TrendingUp,
   Box,
+  Route as RouteIcon,
 } from 'lucide-react';
 import apiClient from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/utils/helpers';
 import toast from 'react-hot-toast';
+import { fetchCampRoute, RouteData } from '@/services/routingService';
 
 const Camp3DMap = React.lazy(() => import('@/components/maps/Camp3DMap'));
 const AICampPlannerModal = React.lazy(() => import('@/components/admin/AICampPlannerModal'));
@@ -564,6 +566,38 @@ export const CampMapPage: React.FC = () => {
     }
   };
 
+  // Interactive Route Planning (Upgrade 9)
+  const [activeRoute2D, setActiveRoute2D] = useState<
+    (RouteData & { destinationCampName?: string; destinationCampId?: string }) | null
+  >(null);
+
+  const handlePlanRoute2D = async (camp: MapCamp) => {
+    if (!camp.latitude || !camp.longitude) {
+      toast.error('Camp location has invalid coordinates.');
+      return;
+    }
+    const startLat = originCoords ? originCoords[0] : 12.9716;
+    const startLng = originCoords ? originCoords[1] : 77.5946;
+    const toastId = toast.loading(`Tracing road route to ${camp.name}...`);
+    try {
+      const route = await fetchCampRoute(startLat, startLng, camp.latitude, camp.longitude);
+      setActiveRoute2D({
+        ...route,
+        destinationCampName: camp.name,
+        destinationCampId: camp.id,
+      });
+      setFlyToCoords([camp.latitude, camp.longitude]);
+      toast.success(
+        route.isFallback
+          ? `Direct geodesic route plotted (${route.roadDistanceKm} km)`
+          : `Road route plotted: ${route.roadDistanceKm} km (~${route.estimatedDurationMinutes} mins)`,
+        { id: toastId }
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to compute route.', { id: toastId });
+    }
+  };
+
   // Road directions routing provider
   const handleGetDirections = (camp: MapCamp) => {
     const dest = `${camp.latitude},${camp.longitude}`;
@@ -935,6 +969,19 @@ export const CampMapPage: React.FC = () => {
                     </Marker>
                   )}
 
+                  {/* Interactive Route Polyline (Upgrade 9) */}
+                  {activeRoute2D && (
+                    <Polyline
+                      positions={activeRoute2D.coordinates}
+                      pathOptions={{
+                        color: '#06b6d4',
+                        weight: 5,
+                        opacity: 0.9,
+                        dashArray: activeRoute2D.isFallback ? '8, 8' : undefined,
+                      }}
+                    />
+                  )}
+
                   {/* MODE A: Standard Markers */}
                   {visualizationMode === 'markers' &&
                     processedCamps.map((camp) => {
@@ -996,14 +1043,15 @@ export const CampMapPage: React.FC = () => {
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 pt-1">
+                              <div className="grid grid-cols-2 gap-1.5 pt-1">
                                 <button
                                   type="button"
-                                  onClick={() => handleGetDirections(camp)}
-                                  className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center gap-1"
+                                  onClick={() => handlePlanRoute2D(camp)}
+                                  className="py-1.5 px-2 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-700 dark:text-cyan-300 text-xs font-semibold rounded-lg flex items-center justify-center gap-1 border border-cyan-200 dark:border-cyan-800 transition"
+                                  title="Plot road route on map"
                                 >
-                                  <Navigation className="w-3 h-3 text-cyan-600" />
-                                  Directions
+                                  <RouteIcon className="w-3 h-3 text-cyan-600" />
+                                  Road Route
                                 </button>
                                 <button
                                   type="button"
@@ -1018,6 +1066,14 @@ export const CampMapPage: React.FC = () => {
                                   {camp.isFullyBooked ? 'Full' : 'Book Camp'}
                                 </button>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => handleGetDirections(camp)}
+                                className="w-full py-1 text-[11px] text-slate-500 hover:text-cyan-600 font-medium flex items-center justify-center gap-1 transition"
+                              >
+                                <Navigation className="w-2.5 h-2.5" />
+                                Open in Google Maps
+                              </button>
                             </div>
                           </Popup>
                         </Marker>
@@ -1106,6 +1162,77 @@ export const CampMapPage: React.FC = () => {
                       );
                     })}
                 </MapContainer>
+              )}
+
+              {/* 2D Road Route HUD Card (Upgrade 9) */}
+              {activeRoute2D && (
+                <div className="absolute top-4 right-4 z-[400] max-w-xs sm:max-w-sm w-full bg-slate-900/95 backdrop-blur-xl text-white p-3.5 rounded-2xl shadow-2xl border border-cyan-500/40 text-xs animate-in slide-in-from-top-3 duration-200">
+                  <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0">
+                        <RouteIcon className="w-3.5 h-3.5 text-cyan-400" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">
+                          Road Route
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-100 truncate max-w-[180px]">
+                          {activeRoute2D.destinationCampName || 'Destination Camp'}
+                        </h4>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveRoute2D(null)}
+                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                      title="Clear Route"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 my-2.5">
+                    <div className="p-2 rounded-xl bg-slate-800/70 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block">Road Distance</span>
+                      <span className="text-sm font-black text-cyan-300">
+                        {activeRoute2D.roadDistanceKm} <span className="text-xs font-normal">km</span>
+                      </span>
+                      {activeRoute2D.straightLineDistanceKm && (
+                        <span className="text-[9px] text-slate-400 block">
+                          ({activeRoute2D.straightLineDistanceKm} km direct)
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-800/70 border border-slate-700/60">
+                      <span className="text-[10px] text-slate-400 block">Est. Duration</span>
+                      <span className="text-sm font-black text-emerald-400">
+                        {Math.floor(activeRoute2D.estimatedDurationMinutes / 60) > 0
+                          ? `${Math.floor(activeRoute2D.estimatedDurationMinutes / 60)}h `
+                          : ''}
+                        {activeRoute2D.estimatedDurationMinutes % 60} min
+                      </span>
+                      <span className="text-[9px] text-slate-400 block">transit estimate</span>
+                    </div>
+                  </div>
+
+                  <div className="text-[9px] text-slate-400 border-t border-slate-800/80 pt-1.5 flex items-center justify-between">
+                    <span className="truncate max-w-[200px]" title={activeRoute2D.provider}>
+                      Source: {activeRoute2D.provider}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeRoute2D.destination) {
+                          setFlyToCoords(activeRoute2D.destination);
+                          setFlyToZoom(14);
+                        }
+                      }}
+                      className="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-0.5"
+                    >
+                      Focus <ArrowRight className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Heatmap Scientific Disclaimer Badge */}
@@ -1360,7 +1487,7 @@ export const CampMapPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <button
                         type="button"
                         onClick={() => {
@@ -1368,24 +1495,32 @@ export const CampMapPage: React.FC = () => {
                           setFlyToCoords([camp.latitude, camp.longitude]);
                           setViewMode('map');
                         }}
-                        className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition"
+                        className="flex-1 min-w-[100px] py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition"
                       >
                         <MapPin className="w-3.5 h-3.5 text-cyan-600" />
-                        Locate on Map
+                        Locate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePlanRoute2D(camp)}
+                        className="flex-1 min-w-[100px] py-2 px-3 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 text-cyan-700 dark:text-cyan-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 border border-cyan-200 dark:border-cyan-800 transition"
+                      >
+                        <RouteIcon className="w-3.5 h-3.5 text-cyan-600" />
+                        Road Route
                       </button>
                       <button
                         type="button"
                         onClick={() => handleGetDirections(camp)}
-                        className="py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition"
+                        className="py-2 px-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition"
+                        title="Open in Google Maps"
                       >
                         <Navigation className="w-3.5 h-3.5 text-cyan-600" />
-                        Directions
                       </button>
                       <button
                         type="button"
                         onClick={() => handleBookCamp(camp)}
                         disabled={camp.isFullyBooked}
-                        className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition ${
+                        className={`flex-1 min-w-[100px] py-2 px-3 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 transition ${
                           camp.isFullyBooked
                             ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                             : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'

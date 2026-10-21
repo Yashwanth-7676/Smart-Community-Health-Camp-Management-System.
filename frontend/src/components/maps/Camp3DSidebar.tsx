@@ -17,7 +17,10 @@ import {
   Crosshair,
   Sparkles,
   ArrowLeft,
-  Radio,
+  Layers,
+  Scale,
+  Activity,
+  Compass,
 } from 'lucide-react';
 import { formatDate } from '@/utils/helpers';
 
@@ -29,6 +32,13 @@ interface Camp3DSidebarProps {
   onGetDirections?: (camp: MapCamp) => void;
   onViewDetails?: (camp: MapCamp) => void;
   onFocusCamp?: (camp: MapCamp) => void;
+  onPlanRoute?: (camp: MapCamp) => void;
+  compareList?: MapCamp[];
+  onToggleCompare?: (camp: MapCamp) => void;
+  onOpenComparison?: () => void;
+  onOpenCoverageGap?: () => void;
+  onOpenMultiCampPlanner?: () => void;
+  isAdmin?: boolean;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   selectedStatus: string;
@@ -51,6 +61,13 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
   onGetDirections,
   onViewDetails,
   onFocusCamp,
+  onPlanRoute,
+  compareList = [],
+  onToggleCompare,
+  onOpenComparison,
+  onOpenCoverageGap,
+  onOpenMultiCampPlanner,
+  isAdmin = false,
   searchQuery,
   onSearchChange,
   selectedStatus,
@@ -107,19 +124,33 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition ${
-                  showFilters || selectedStatus !== 'all' || selectedService !== 'all' || freeOnly || slotsOnly
-                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
-                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-                }`}
-                title="Toggle Search Filters"
-              >
-                <Filter className="w-3.5 h-3.5" />
-                <span className="text-[10px]">Filter</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                {compareList.length > 0 && onOpenComparison && (
+                  <button
+                    type="button"
+                    onClick={onOpenComparison}
+                    className="p-1.5 px-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold flex items-center gap-1 animate-pulse"
+                    title="Open Side-by-Side Comparison"
+                  >
+                    <Scale className="w-3.5 h-3.5" />
+                    <span>Compare ({compareList.length})</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition ${
+                    showFilters || selectedStatus !== 'all' || selectedService !== 'all' || freeOnly || slotsOnly
+                      ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                  }`}
+                  title="Toggle Search Filters"
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span className="text-[10px]">Filter</span>
+                </button>
+              </div>
             </div>
 
             {/* Search Input Bar */}
@@ -211,6 +242,30 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
                     Available Slots
                   </label>
                 </div>
+              </div>
+            )}
+
+            {/* Administrator Intelligence Quick Actions */}
+            {isAdmin && (
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                {onOpenCoverageGap && (
+                  <button
+                    type="button"
+                    onClick={onOpenCoverageGap}
+                    className="py-1 px-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center justify-center gap-1"
+                  >
+                    <Layers className="w-3 h-3" /> Coverage Audit
+                  </button>
+                )}
+                {onOpenMultiCampPlanner && (
+                  <button
+                    type="button"
+                    onClick={onOpenMultiCampPlanner}
+                    className="py-1 px-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-1"
+                  >
+                    <Navigation className="w-3 h-3" /> Mobile Circuit
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -343,14 +398,31 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
                       <span>{selectedCamp.isFullyBooked ? 'Fully Booked' : 'Book Camp Slot'}</span>
                     </button>
 
-                    <div className="grid grid-cols-2 gap-1.5">
+                    {onPlanRoute && (
                       <button
                         type="button"
-                        onClick={() => onGetDirections && onGetDirections(selectedCamp)}
-                        className="py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 flex items-center justify-center gap-1"
+                        onClick={() => onPlanRoute(selectedCamp)}
+                        className="w-full py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white flex items-center justify-center gap-1.5 shadow-md transition"
                       >
-                        <Navigation className="w-3 h-3" /> Directions
+                        <Navigation className="w-3.5 h-3.5" /> Plan 3D Road Route
                       </button>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {onToggleCompare && (
+                        <button
+                          type="button"
+                          onClick={() => onToggleCompare(selectedCamp)}
+                          className={`py-1.5 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1 transition ${
+                            compareList.some((c) => c.id === selectedCamp.id)
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                          }`}
+                        >
+                          <Scale className="w-3 h-3" />
+                          {compareList.some((c) => c.id === selectedCamp.id) ? 'Comparing' : 'Compare'}
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -361,6 +433,14 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
                         <Crosshair className="w-3 h-3 text-cyan-400" /> Focus Drone
                       </button>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onGetDirections && onGetDirections(selectedCamp)}
+                      className="w-full py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1"
+                    >
+                      <Navigation className="w-3 h-3 text-cyan-400" /> Google Maps Navigation
+                    </button>
                   </div>
                 </div>
               </div>
@@ -379,6 +459,7 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
                     const cap = camp.capacity || 100;
                     const reg = camp.registered || 0;
                     const pct = Math.min(100, Math.round((reg / cap) * 100));
+                    const isComparing = compareList.some((c) => c.id === camp.id);
 
                     return (
                       <div
@@ -427,6 +508,40 @@ export const Camp3DSidebar: React.FC<Camp3DSidebarProps> = ({
                               <span className="text-cyan-400">{camp.distanceLabel}</span>
                             )}
                           </div>
+                        </div>
+
+                        {/* Quick Comparison & Route shortcuts */}
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10px]">
+                          {onToggleCompare && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleCompare(camp);
+                              }}
+                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded font-bold transition ${
+                                isComparing
+                                  ? 'bg-cyan-500/20 text-cyan-300'
+                                  : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <Scale className="w-3 h-3" />
+                              {isComparing ? 'Comparing' : '+ Compare'}
+                            </button>
+                          )}
+
+                          {onPlanRoute && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPlanRoute(camp);
+                              }}
+                              className="text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-bold"
+                            >
+                              <Navigation className="w-2.5 h-2.5" /> Route
+                            </button>
+                          )}
                         </div>
                       </div>
                     );

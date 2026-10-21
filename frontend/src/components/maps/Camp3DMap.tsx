@@ -24,6 +24,13 @@ import {
   Eye,
   Sliders,
   Plane,
+  Route,
+  Navigation,
+  Scale,
+  X,
+  Clock,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import Geographic3DTerrain, {
   KARNATAKA_PROJECTION,
@@ -35,6 +42,13 @@ import Hospital3DBeacon from './Hospital3DBeacon';
 import { VERIFIED_REFERRAL_HOSPITALS } from './referralFacilities';
 import CinematicCameraController, { CameraPreset } from './CinematicCameraController';
 import Camp3DSidebar from './Camp3DSidebar';
+import { Route3DRibbon } from './Route3DRibbon';
+import { CampComparisonDrawer } from './CampComparisonDrawer';
+import { CoverageGapExplorerModal } from './CoverageGapExplorerModal';
+import { MultiCampPlannerModal } from './MultiCampPlannerModal';
+import { fetchCampRoute, RouteData } from '@/services/routingService';
+import { useAuth } from '@/hooks/useAuth';
+import toast from 'react-hot-toast';
 
 export interface Camp3DMapProps {
   camps: MapCamp[];
@@ -115,11 +129,29 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
 }) => {
   const controlsRef = useRef<any>(null);
 
+  // Authentication Context & Admin Role Check
+  const { user, hasRole } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'organizer' || hasRole(['admin', 'organizer']);
+
   // Region & Camera State
   const [regionFocus, setRegionFocus] = useState<'karnataka' | 'india'>('karnataka');
   const [cameraPreset, setCameraPreset] = useState<CameraPreset | null>(null);
   const [flyTargetCoords, setFlyTargetCoords] = useState<[number, number] | null>(null);
   const [bearingAngle, setBearingAngle] = useState<number>(0);
+
+  // Route Planning State
+  const [activeRoute, setActiveRoute] = useState<
+    (RouteData & { destinationCampName?: string; destinationCampId?: string }) | null
+  >(null);
+  const [isRouting, setIsRouting] = useState<boolean>(false);
+
+  // Camp Comparison State (up to 4 camps side-by-side)
+  const [compareList, setCompareList] = useState<MapCamp[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState<boolean>(false);
+
+  // Geographic Intelligence Modals
+  const [coverageModalOpen, setCoverageModalOpen] = useState<boolean>(false);
+  const [multiPlannerOpen, setMultiPlannerOpen] = useState<boolean>(false);
 
   // Independent Layer Toggles
   const [layers, setLayers] = useState<MapLayerConfig>({
@@ -188,12 +220,87 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
     }
   }, [selectedCamp]);
 
-  // Handle fly-in to a selected camp from sidebar
+  // Handle fly-in to a selected camp from sidebar or modals
   const handleFocusCamp = useCallback((camp: MapCamp) => {
     if (camp.latitude && camp.longitude) {
       setFlyTargetCoords([camp.latitude, camp.longitude]);
-      setCameraPreset(null);
+      setCameraPreset('drone');
     }
+  }, []);
+
+  // Handle Interactive Route Planning
+  const handlePlanRoute = useCallback(
+    async (camp: MapCamp) => {
+      if (!camp.latitude || !camp.longitude) {
+        toast.error('Selected camp does not have valid geographic coordinates.');
+        return;
+      }
+
+      // Determine origin coordinates: user GPS if available, else Bangalore metro center
+      let startLat = 12.9716;
+      let startLng = 77.5946;
+
+      if (
+        userCoords &&
+        userCoords.length === 2 &&
+        !isNaN(userCoords[0]) &&
+        !isNaN(userCoords[1])
+      ) {
+        startLat = userCoords[0];
+        startLng = userCoords[1];
+      }
+
+      setIsRouting(true);
+      const toastId = toast.loading(`Calculating road route to ${camp.name}...`);
+      try {
+        const route = await fetchCampRoute(startLat, startLng, camp.latitude, camp.longitude);
+        setActiveRoute({
+          ...route,
+          destinationCampName: camp.name,
+          destinationCampId: camp.id,
+        });
+
+        // Align camera to destination camp
+        setFlyTargetCoords([camp.latitude, camp.longitude]);
+        setCameraPreset('drone');
+
+        toast.success(
+          route.isFallback
+            ? `Direct geodesic route plotted (${route.roadDistanceKm} km)`
+            : `Road route plotted: ${route.roadDistanceKm} km (~${route.estimatedDurationMinutes} mins)`,
+          { id: toastId }
+        );
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to compute route.', { id: toastId });
+      } finally {
+        setIsRouting(false);
+      }
+    },
+    [userCoords]
+  );
+
+  // Toggle camp in comparison list
+  const handleToggleCompare = useCallback((camp: MapCamp) => {
+    setCompareList((prev) => {
+      const exists = prev.some((c) => c.id === camp.id);
+      if (exists) {
+        return prev.filter((c) => c.id !== camp.id);
+      }
+      if (prev.length >= 4) {
+        toast.error('You can compare a maximum of 4 camps simultaneously.');
+        return prev;
+      }
+      toast.success(`Added "${camp.name}" to comparison.`);
+      return [...prev, camp];
+    });
+  }, []);
+
+  const handleRemoveFromCompare = useCallback((campId: string) => {
+    setCompareList((prev) => prev.filter((c) => c.id !== campId));
+  }, []);
+
+  const handleClearCompare = useCallback(() => {
+    setCompareList([]);
   }, []);
 
   // Handle Reset View
@@ -277,6 +384,13 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
         onGetDirections={onGetDirections}
         onViewDetails={onViewDetails}
         onFocusCamp={handleFocusCamp}
+        onPlanRoute={handlePlanRoute}
+        compareList={compareList}
+        onToggleCompare={handleToggleCompare}
+        onOpenComparison={() => setComparisonOpen(true)}
+        onOpenCoverageGap={() => setCoverageModalOpen(true)}
+        onOpenMultiCampPlanner={() => setMultiPlannerOpen(true)}
+        isAdmin={isAdmin}
         searchQuery={activeSearch}
         onSearchChange={handleSearchChange}
         selectedStatus={activeStatus}
@@ -590,6 +704,15 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
                 prefersReducedMotion={prefersReducedMotion}
               />
             ))}
+
+          {/* Active 3D Road Route Ribbon */}
+          {activeRoute && (
+            <Route3DRibbon
+              route={activeRoute}
+              projection={activeProjection}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+          )}
         </Canvas>
       </WebGLBoundary>
 
@@ -720,6 +843,140 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
           )}
         </div>
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 7. ROUTE PLANNING HUD OVERLAY CARD                            */}
+      {/* ------------------------------------------------------------- */}
+      {activeRoute && (
+        <div className="absolute top-20 right-4 sm:right-6 z-30 max-w-sm w-full bg-slate-900/95 border border-cyan-500/40 backdrop-blur-2xl rounded-2xl p-4 shadow-2xl text-white animate-in slide-in-from-top-4 duration-200">
+          <div className="flex items-start justify-between gap-3 pb-2.5 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shrink-0">
+                <Route className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">
+                  Active Road Route
+                </span>
+                <h4
+                  className="text-xs font-bold text-slate-100 truncate max-w-[200px]"
+                  title={activeRoute.destinationCampName}
+                >
+                  {activeRoute.destinationCampName || 'Health Camp Destination'}
+                </h4>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveRoute(null)}
+              className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              title="Clear Route"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 my-3">
+            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
+              <span className="text-[10px] text-slate-400 block font-medium">Road Distance</span>
+              <span className="text-base font-black text-cyan-300">
+                {activeRoute.roadDistanceKm}{' '}
+                <span className="text-xs font-normal text-slate-400">km</span>
+              </span>
+              {activeRoute.straightLineDistanceKm && (
+                <span className="text-[9px] text-slate-400 block mt-0.5">
+                  ({activeRoute.straightLineDistanceKm} km direct)
+                </span>
+              )}
+            </div>
+
+            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
+              <span className="text-[10px] text-slate-400 block font-medium">Est. Drive Time</span>
+              <span className="text-base font-black text-emerald-400">
+                {Math.floor(activeRoute.estimatedDurationMinutes / 60) > 0
+                  ? `${Math.floor(activeRoute.estimatedDurationMinutes / 60)}h `
+                  : ''}
+                {activeRoute.estimatedDurationMinutes % 60}{' '}
+                <span className="text-xs font-normal text-slate-400">min</span>
+              </span>
+              <span className="text-[9px] text-slate-400 block mt-0.5">at normal transit flow</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800/80">
+            <span className="truncate max-w-[190px]" title={activeRoute.provider}>
+              Source: {activeRoute.provider}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (activeRoute.destination) {
+                  setFlyTargetCoords(activeRoute.destination);
+                  setCameraPreset('drone');
+                }
+              }}
+              className="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 transition"
+            >
+              Focus <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 8. FLOATING COMPARE BUTTON                                    */}
+      {/* ------------------------------------------------------------- */}
+      {compareList.length > 0 && !comparisonOpen && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-3 duration-200">
+          <button
+            type="button"
+            onClick={() => setComparisonOpen(true)}
+            className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-xs shadow-2xl hover:scale-105 transition"
+          >
+            <Scale className="w-4 h-4 text-slate-950" />
+            <span>
+              Compare {compareList.length} Selected Camp{compareList.length > 1 ? 's' : ''}
+            </span>
+            <span className="px-1.5 py-0.5 bg-slate-950 text-cyan-400 rounded-full text-[10px] font-mono">
+              {compareList.length}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 9. MODALS & DRAWERS                                          */}
+      {/* ------------------------------------------------------------- */}
+
+      {/* Camp Comparison Drawer */}
+      <CampComparisonDrawer
+        isOpen={comparisonOpen}
+        onClose={() => setComparisonOpen(false)}
+        camps={compareList}
+        onRemoveCamp={handleRemoveFromCompare}
+        onClearAll={handleClearCompare}
+        onFocusCamp={handleFocusCamp}
+        onBookCamp={onBookCamp || (() => {})}
+        onPlanRoute={handlePlanRoute}
+      />
+
+      {/* Regional Coverage Gap Explorer Modal */}
+      <CoverageGapExplorerModal
+        isOpen={coverageModalOpen}
+        onClose={() => setCoverageModalOpen(false)}
+        onSelectDistrict={(district) => {
+          setCoverageModalOpen(false);
+          handleSearchChange(district);
+        }}
+      />
+
+      {/* Multi-Camp Mobile Circuit Planner Modal */}
+      <MultiCampPlannerModal
+        isOpen={multiPlannerOpen}
+        onClose={() => setMultiPlannerOpen(false)}
+        availableCamps={camps}
+        onFocusCamp={handleFocusCamp}
+      />
     </div>
   );
 };
