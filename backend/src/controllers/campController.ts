@@ -239,7 +239,8 @@ export const getMapCamps = async (req: Request, res: Response, next: NextFunctio
 
       // 2. Status filter
       if (status && status !== 'all') {
-        if (camp.status.toUpperCase() !== String(status).toUpperCase()) return false;
+        const liveStatus = computeLiveCampStatus(camp);
+        if (liveStatus.toUpperCase() !== String(status).toUpperCase()) return false;
       }
 
       // 3. Search query (name, address, location, pincode, service)

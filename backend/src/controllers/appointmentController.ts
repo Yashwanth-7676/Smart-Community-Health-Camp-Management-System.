@@ -222,6 +222,18 @@ export const createAppointment = async (req: Request, res: Response, next: NextF
           targetCamp.registered = currentRegistered + 1;
         }
 
+        // Check for double-booking in demonstration mock appointments
+        const effectivePatientId = patientId || req.user?.userId || 'user-patient-1';
+        const isDoubleBooked = DEMO_APPOINTMENTS.some(
+          (a) =>
+            a.patientId === effectivePatientId &&
+            a.campId === campId &&
+            new Date(a.date).toDateString() === appointmentDate.toDateString()
+        );
+        if (isDoubleBooked) {
+          throw new AppError('Patient already has an appointment at this camp on this date', 409, 'DOUBLE_BOOKING');
+        }
+
         const tokenNum = DEMO_APPOINTMENTS.length + 1;
         const qToken = `DEMO-${String(tokenNum).padStart(3, '0')}`;
         fullAppointment = {

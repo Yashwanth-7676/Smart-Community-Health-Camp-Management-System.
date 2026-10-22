@@ -13,7 +13,12 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "tsx tests/verifyUpgrade10.ts",
+    "test:all": "tsx tests/runAllTests.ts",
+    "test:upgrade10": "tsx tests/verifyUpgrade10.ts",
+    "test:upgrade9": "tsx tests/verifyUpgrade9.ts",
+    "test:workflows": "tsx tests/verifyAllWorkflows.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

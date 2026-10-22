@@ -232,6 +232,60 @@ export const getReportsByPatientId = async (req: Request, res: Response, next: N
 };
 
 /**
+ * GET /api/v1/reports
+ * Scoped medical reports listing:
+ * - PATIENT: only their own reports
+ * - DOCTOR: authored reports
+ * - ADMIN: all clinical reports
+ */
+export const getAllReports = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user) {
+      throw new AppError('Unauthorized', 401);
+    }
+
+    let reports: any[] = [];
+    try {
+      const where: Record<string, any> = {};
+      if (user.role === Role.PATIENT) {
+        where.patientId = user.userId;
+      } else if (user.role === Role.DOCTOR) {
+        where.doctorId = user.userId;
+      }
+
+      reports = await prisma.medicalReport.findMany({
+        where,
+        include: {
+          doctor: { select: { id: true, firstName: true, lastName: true } },
+          patient: { select: { id: true, firstName: true, lastName: true } },
+          camp: { select: { id: true, name: true, location: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (dbErr) {
+      if (isDbConnectionError(dbErr)) {
+        reports = DEMO_REPORTS.filter((r) => {
+          if (user.role === 'PATIENT') return r.patientId === user.userId;
+          if (user.role === 'DOCTOR') return r.doctorId === user.userId;
+          return true;
+        });
+      } else {
+        throw dbErr;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Medical reports retrieved successfully',
+      data: reports,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/reports/print/:id
  * Printable report details format
  */

@@ -4,6 +4,7 @@ import {
   createReport,
   getReportsByPatientId,
   getPrintableReport,
+  getAllReports,
 } from '../controllers/reportController';
 import {
   reportReaderUpload,
@@ -29,6 +30,7 @@ router.post(
   confirmAndLinkExtractedReport
 );
 
+router.get('/', authorize('PATIENT', 'DOCTOR', 'ADMIN'), getAllReports);
 router.post('/', authorize('DOCTOR'), createReport);
 router.get('/patient/:id', authorize('PATIENT', 'DOCTOR', 'ADMIN'), getReportsByPatientId);
 router.get('/print/:id', getPrintableReport);

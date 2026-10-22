@@ -133,35 +133,61 @@ export const register = [
     try {
       const { email, password, firstName, lastName, phone, role } = req.body as RegisterDto;
 
-      // Check for existing user
-      const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser) {
-        throw new AppError('An account with this email already exists', 409, 'EMAIL_EXISTS');
-      }
-
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Only allow PATIENT role for self-registration
       const userRole = role && ['PATIENT'].includes(role) ? role : 'PATIENT';
 
-      // Create user
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          phone,
-          role: userRole,
-        },
-      });
+      let user: any;
+      try {
+        // Check for existing user
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+          throw new AppError('An account with this email already exists', 409, 'EMAIL_EXISTS');
+        }
 
-      // Auto-create patient profile for PATIENT role
-      if (user.role === 'PATIENT') {
-        await prisma.patientProfile.create({
-          data: { userId: user.id },
+        // Create user
+        user = await prisma.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            phone,
+            role: userRole,
+          },
         });
+
+        // Auto-create patient profile for PATIENT role
+        if (user.role === 'PATIENT') {
+          await prisma.patientProfile.create({
+            data: { userId: user.id },
+          });
+        }
+      } catch (dbErr) {
+        if (isDbConnectionError(dbErr)) {
+          const existing = DEMO_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());
+          if (existing) {
+            throw new AppError('An account with this email already exists', 409, 'EMAIL_EXISTS');
+          }
+          const newUser = {
+            id: `user-patient-${Date.now()}`,
+            email,
+            passwordHash: hashedPassword,
+            role: userRole,
+            firstName,
+            lastName,
+            phone: phone || '+91-9876543210',
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          DEMO_USERS.push(newUser);
+          user = newUser;
+        } else {
+          throw dbErr;
+        }
       }
 
       // Generate tokens

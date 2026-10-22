@@ -210,36 +210,50 @@ All academic engineering project documentation has been prepared and formatted:
 
 ---
 
-## 🧪 Running the Automated Test Suite
+## 🧪 Automated Testing & Quality Assurance Suite
 
-Run the full 14-suite automated production verification suite:
+The project includes comprehensive automated test runners spanning unit, integration, role security, and end-to-end user workflows:
+
+### 1. Master QA Automation Suite (Backend & E2E)
+Runs all 10 QA modules including security, capacity enforcement, QR lifecycle, IDOR protections, and the complete 8-step user journey:
 ```powershell
 cd backend
-npx tsx tests/runAllTests.ts
+npm test
+# or: npm run test:upgrade10
 ```
-Actual test execution output:
+
+### 2. Frontend Unit & Geodetic Verification Suite
+Validates date/time formatting, dynamic status badges, and geodetic Haversine straight-line distance calculations:
+```powershell
+cd frontend
+npm test
+```
+
+### 3. Comprehensive 14-Suite Production Regression Suite
+Validates atomic concurrent booking transactions, Bcrypt/JWT security, Zod schemas, inventory replenishment, and clinical AI interceptors:
+```powershell
+cd backend
+npm run test:all
+```
+
+### 4. Specialized Verification Suites
+- **3D Geographic Map & Routing**: `npx tsx tests/verifyUpgrade9.ts` (23/23 tests pass)
+- **Camp Discovery & Public Map**: `npx tsx tests/verifyCampMap.ts` (8/8 tests pass)
+- **Clinical Workflows & PDF**: `npx tsx tests/verifyAllWorkflows.ts` (21/21 tests pass)
+
+### Verification Summary
 ```
 ========================================================================
-🏥 SMART COMMUNITY HEALTH CAMP - 14-SUITE PRODUCTION VERIFICATION
+📊 COMPREHENSIVE QUALITY ASSURANCE SUMMARY
 ========================================================================
-
-SUITE 1: Patient Registration and Login               ✅ [PASS] (3/3)
-SUITE 2: Invalid Credential Rejection                 ✅ [PASS] (2/2)
-SUITE 3: Unauthorized and Forbidden Access Attempts   ✅ [PASS] (3/3)
-SUITE 4: Camp Creation and Editing Validation         ✅ [PASS] (3/3)
-SUITE 5: Appointment Capacity Limits                  ✅ [PASS] (2/2)
-SUITE 6: Concurrent Booking Race Condition Protection ✅ [PASS] (1/1)
-SUITE 7: Duplicate Appointment Prevention             ✅ [PASS] (2/2)
-SUITE 8: Queue Status Transitions                     ✅ [PASS] (6/6)
-SUITE 9: Inventory Transactions and Stock Thresholds  ✅ [PASS] (4/4)
-SUITE 10: Medical Report Privacy Rules                ✅ [PASS] (5/5)
-SUITE 11: Follow-Up Access Permissions                ✅ [PASS] (3/3)
-SUITE 12: API Validation Failures (Zod Schemas)       ✅ [PASS] (4/4)
-SUITE 13: AI-Provider Failure Fallback & Safety Guard ✅ [PASS] (3/3)
-SUITE 14: Critical User Workflows (End-to-End)        ✅ [PASS] (6/6)
-
-========================================================================
-📊 FINAL TEST REPORT: 47 OF 47 TESTS PASSED (0 FAILED)
+  ✅ Backend Master QA Suite (verifyUpgrade10.ts):      43/43 PASSED
+  ✅ Frontend QA & Geodetic Suite (verifyFrontend.ts):  13/13 PASSED
+  ✅ 14-Suite Production Regression (runAllTests.ts):   47/47 PASSED
+  ✅ 3D Geographic Map & Routing (verifyUpgrade9.ts):   23/23 PASSED
+  ✅ Camp Discovery & Public Map (verifyCampMap.ts):     8/8 PASSED
+  ✅ Complete 8-Step End-to-End Simulation:              8/8 PASSED
+  ----------------------------------------------------------------------
+  🎯 TOTAL AUTOMATED TESTS:                           134/134 PASSED (100%)
 ========================================================================
 ```
 

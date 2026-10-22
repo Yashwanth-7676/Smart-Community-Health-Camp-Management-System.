@@ -1,10 +1,13 @@
 // backend/tests/verifyAllWorkflows.ts
 /**
- * Prompt 6 Integration Verification Script
- * Exercises all 10 user workflows directly against the running API server
+ * Prompt 6 & Upgrade 10 Integration Verification Script
+ * Exercises all 10 user workflows directly against running or in-process API server
  */
+import app from '../src/app';
+import http from 'http';
 
-const API_BASE = 'http://127.0.0.1:5000/api/v1';
+let server: http.Server | null = null;
+let API_BASE = 'http://127.0.0.1:5000/api/v1';
 
 let passed = 0;
 let failed = 0;
@@ -19,9 +22,27 @@ function assert(condition: boolean, title: string, detail?: string) {
   }
 }
 
+async function ensureServer(): Promise<string> {
+  try {
+    const res = await fetch('http://127.0.0.1:5000/health', { signal: AbortSignal.timeout(1000) });
+    if (res.ok) {
+      return 'http://127.0.0.1:5000/api/v1';
+    }
+  } catch {}
+
+  return new Promise((resolve) => {
+    server = app.listen(0, '127.0.0.1', () => {
+      const addr = server!.address() as any;
+      console.log(`[Test Runner] Started in-process test server on http://127.0.0.1:${addr.port}/api/v1\n`);
+      resolve(`http://127.0.0.1:${addr.port}/api/v1`);
+    });
+  });
+}
+
 async function runLiveAudit() {
+  API_BASE = await ensureServer();
   console.log('========================================================================');
-  console.log('🔍 PROMPT 6: END-TO-END WORKFLOW INTEGRATION AUDIT & VERIFICATION');
+  console.log('🔍 UPGRADE 10: END-TO-END WORKFLOW INTEGRATION AUDIT & VERIFICATION');
   console.log('========================================================================\n');
 
   // WORKFLOW 1: Admin logs in and creates a health camp
@@ -240,6 +261,9 @@ async function runLiveAudit() {
   assert(logoutRes.status === 200, '10.3 User session logged out and tokens invalidated successfully');
 
   // SUMMARY
+  if (server) {
+    server.close();
+  }
   console.log('\n========================================================================');
   console.log(`📊 LIVE INTEGRATION AUDIT: ${passed} OF ${passed + failed} WORKFLOW TESTS PASSED (${failed} FAILED)`);
   console.log('========================================================================\n');
@@ -250,6 +274,9 @@ async function runLiveAudit() {
 }
 
 runLiveAudit().catch((err) => {
+  if (server) {
+    server.close();
+  }
   console.error('Fatal audit error:', err);
   process.exit(1);
 });

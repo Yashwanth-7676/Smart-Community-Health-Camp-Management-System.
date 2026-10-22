@@ -20,7 +20,7 @@ export interface DemoUser {
   id: string;
   email: string;
   passwordHash: string;
-  role: 'ADMIN' | 'DOCTOR' | 'VOLUNTEER' | 'PATIENT';
+  role: 'ADMIN' | 'DOCTOR' | 'VOLUNTEER' | 'PATIENT' | 'ORGANIZER';
   firstName: string;
   lastName: string;
   phone: string;
@@ -148,8 +148,8 @@ export const DEMO_CAMPS = [
     address: '100 Feet Road, Indiranagar, Bangalore - 560038',
     latitude: 12.9784,
     longitude: 77.6408,
-    startDate: new Date('2026-10-15T08:00:00Z'),
-    endDate: new Date('2026-10-20T18:00:00Z'),
+    startDate: new Date('2026-10-18T08:00:00Z'),
+    endDate: new Date('2026-10-28T18:00:00Z'),
     capacity: 150,
     registered: 112,
     status: 'ONGOING',

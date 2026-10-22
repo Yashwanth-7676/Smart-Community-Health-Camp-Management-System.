@@ -305,6 +305,8 @@ async function runTests() {
           timeSlot: '09:00 - 10:00',
         },
       ],
+    }, {
+      Authorization: `Bearer ${adminToken}`,
     });
 
     assert.strictEqual(res.status, 200);
