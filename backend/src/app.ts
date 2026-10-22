@@ -146,6 +146,7 @@ app.use('/api', generalLimiter);
   app.use(`${prefix}/docs`, docsRoutes);
   app.use(`${prefix}/digital-twin`, digitalTwinRoutes);
   app.use(`${prefix}/follow-ups`, followUpRoutes);
+  app.use(`${prefix}/followups`, followUpRoutes);
   app.use(`${prefix}/command-center`, commandCenterRoutes);
   app.use(`${prefix}/health-id`, digitalHealthIdRoutes);
   app.use(`${prefix}/ai-planner`, aiPlannerRoutes);

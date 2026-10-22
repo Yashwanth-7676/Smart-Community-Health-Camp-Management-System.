@@ -28,11 +28,13 @@ const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
 const PatientDashboard = lazy(() => import('@/pages/patient/PatientDashboard'));
 const AppointmentBooking = lazy(() => import('@/pages/patient/AppointmentBooking'));
 const PatientProfile = lazy(() => import('@/pages/patient/PatientProfile'));
+const FollowUpPage = lazy(() => import('@/pages/patient/FollowUpPage'));
 const DoctorDashboard = lazy(() => import('@/pages/doctor/DoctorDashboard'));
 const DoctorPatients = lazy(() => import('@/pages/doctor/DoctorPatients'));
 const DoctorReports = lazy(() => import('@/pages/doctor/DoctorReports'));
 const VolunteerDashboard = lazy(() => import('@/pages/volunteer/VolunteerDashboard'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const AdminOperations = lazy(() => import('@/pages/admin/AdminOperations'));
 const AdminCamps = lazy(() => import('@/pages/admin/AdminCamps'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
@@ -124,6 +126,14 @@ export const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/patient/followups"
+              element={
+                <ProtectedRoute allowedRoles={['patient']}>
+                  <FollowUpPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Doctor Portal */}
             <Route
@@ -191,6 +201,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/operations"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminOperations />
                 </ProtectedRoute>
               }
             />

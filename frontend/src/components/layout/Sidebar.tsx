@@ -27,6 +27,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Overview', path: '/patient', icon: LayoutDashboard },
     { label: 'Book Appointment', path: '/patient/book', icon: Calendar },
     { label: 'My Profile', path: '/patient/profile', icon: User },
+    { label: 'Follow-Ups', path: '/patient/followups', icon: ClipboardList },
     { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'Medical Reports', path: '/reports', icon: FileText },
     { label: 'Camp Discovery', path: '/camps', icon: Compass },
@@ -55,6 +56,7 @@ export const Sidebar: React.FC = () => {
   const adminItems = [
     { label: 'Admin Overview', path: '/admin', icon: LayoutDashboard },
     { label: 'Command Center', path: '/command-center', icon: Radio },
+    { label: 'Live Operations', path: '/admin/operations', icon: Stethoscope },
     { label: 'Camp Management', path: '/admin/camps', icon: Calendar },
     { label: 'User Management', path: '/admin/users', icon: Users },
     { label: 'Analytics & Trends', path: '/admin/analytics', icon: BarChart3 },

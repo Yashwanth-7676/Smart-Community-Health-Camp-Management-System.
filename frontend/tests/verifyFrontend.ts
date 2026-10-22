@@ -109,3 +109,4 @@ runFrontendQA().catch((err) => {
   console.error('Frontend QA Execution Error:', err);
   process.exit(1);
 });
+

@@ -465,3 +465,129 @@ export const getCampAnalytics = async (_req: Request, res: Response, next: NextF
     next(error);
   }
 };
+
+/**
+ * GET /api/v1/admin/operations
+ * Enhanced operational stats for the admin dashboard
+ */
+export const getOperationsStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.setHours(0, 0, 0, 0));
+    const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+
+    const [
+      activeCamps,
+      upcomingCamps,
+      completedCamps,
+      totalRegistrations,
+      confirmedAppointments,
+      completedAppointments,
+      todayCheckIns,
+      waitingInQueue,
+      lowStockAlerts,
+      pendingReferrals,
+      pendingFollowUps,
+    ] = await Promise.all([
+      prisma.camp.count({ where: { status: CampStatus.ONGOING } }),
+      prisma.camp.count({ where: { status: CampStatus.UPCOMING } }),
+      prisma.camp.count({ where: { status: CampStatus.COMPLETED } }),
+      prisma.appointment.count(),
+      prisma.appointment.count({ where: { status: 'CONFIRMED' } }),
+      prisma.appointment.count({ where: { status: 'COMPLETED' } }),
+      prisma.appointment.count({
+        where: { status: 'COMPLETED', date: { gte: todayStart, lte: todayEnd } },
+      }),
+      prisma.queueToken.count({ where: { status: 'WAITING' } }),
+      prisma.inventory.count({ where: { quantity: { lte: 10 } } }),
+      prisma.medicalReport.count({ where: { referral: { not: null } } }),
+      (prisma as any).followUp
+        ? (prisma as any).followUp.count({ where: { status: { in: ['PENDING', 'SCHEDULED'] } } })
+        : Promise.resolve(0),
+    ]);
+
+    // District coverage — group camps by location prefix
+    const campsRaw = await prisma.camp.findMany({
+      select: { location: true, _count: { select: { appointments: true } } },
+    });
+    const districtMap: Record<string, { campCount: number; patientCount: number }> = {};
+    campsRaw.forEach((c) => {
+      const district = c.location.split(',')[0].trim();
+      if (!districtMap[district]) districtMap[district] = { campCount: 0, patientCount: 0 };
+      districtMap[district].campCount += 1;
+      districtMap[district].patientCount += c._count.appointments;
+    });
+    const districtCoverage = Object.entries(districtMap).map(([district, v]) => ({
+      district,
+      campCount: v.campCount,
+      patientCount: v.patientCount,
+    }));
+
+    const attendanceRate =
+      totalRegistrations > 0 ? Math.round((completedAppointments / totalRegistrations) * 100) : 0;
+
+    res.json({
+      success: true,
+      message: 'Operations stats retrieved successfully',
+      data: {
+        activeCamps,
+        upcomingCamps,
+        completedCamps,
+        totalRegistrations,
+        attendanceRate,
+        todayCheckIns,
+        waitingInQueue,
+        lowStockAlerts,
+        pendingReferrals,
+        pendingFollowUps,
+        districtCoverage,
+        dataNote: 'Live data from production database',
+      },
+    });
+  } catch (error) {
+    if (isDbConnectionError(error)) {
+      const ongoingCamps = DEMO_CAMPS.filter((c) => c.status === 'ONGOING');
+      const upcomingCamps = DEMO_CAMPS.filter((c) => c.status === 'UPCOMING');
+      const completedCamps = DEMO_CAMPS.filter((c) => c.status === 'COMPLETED');
+      const totalRegistrations = DEMO_APPOINTMENTS.length;
+      const completedAppointments = DEMO_APPOINTMENTS.filter((a) => a.status === 'COMPLETED').length;
+      const lowStockAlerts = DEMO_INVENTORY.filter((i) => i.quantity <= i.lowStockThreshold).length;
+
+      // Build district coverage from demo camps
+      const districtMap: Record<string, { campCount: number; patientCount: number }> = {};
+      DEMO_CAMPS.forEach((c) => {
+        const district = c.location.split(',')[0].trim();
+        if (!districtMap[district]) districtMap[district] = { campCount: 0, patientCount: 0 };
+        districtMap[district].campCount += 1;
+        districtMap[district].patientCount += c.registered;
+      });
+      const districtCoverage = Object.entries(districtMap).map(([district, v]) => ({
+        district,
+        campCount: v.campCount,
+        patientCount: v.patientCount,
+      }));
+
+      res.json({
+        success: true,
+        message: 'Operations stats retrieved successfully (demonstration mode)',
+        data: {
+          activeCamps: ongoingCamps.length,
+          upcomingCamps: upcomingCamps.length,
+          completedCamps: completedCamps.length,
+          totalRegistrations,
+          attendanceRate:
+            totalRegistrations > 0 ? Math.round((completedAppointments / totalRegistrations) * 100) : 0,
+          todayCheckIns: 12,
+          waitingInQueue: 8,
+          lowStockAlerts,
+          pendingReferrals: 3,
+          pendingFollowUps: 5,
+          districtCoverage,
+          dataNote: 'Demonstration mode — database unavailable. Showing sample data.',
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+};

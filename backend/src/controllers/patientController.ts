@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { getPagination, buildPaginationMeta, sanitizeUser } from '../utils/helpers';
 import { UpdatePatientProfileDto, ListQueryParams } from '../types';
+import { isDbConnectionError, DEMO_APPOINTMENTS, DEMO_REPORTS, DEMO_FOLLOW_UPS, DEMO_CAMPS } from '../utils/mockStore';
 
 const prisma = new PrismaClient();
 
@@ -284,6 +285,98 @@ export const getPatientReports = async (req: Request, res: Response, next: NextF
       meta: buildPaginationMeta(total, pageNum, limitNum),
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/patients/journey-stats
+ * Get comprehensive patient journey statistics for the authenticated patient
+ */
+export const getPatientJourneyStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const patientId = req.user!.userId;
+    const now = new Date();
+
+    const [
+      totalAppointments,
+      completedVisits,
+      upcomingAppointments,
+      cancelledAppointments,
+      pendingFollowUps,
+      reportsAvailable,
+      lastVisitResult,
+      nextCampResult,
+    ] = await Promise.all([
+      prisma.appointment.count({ where: { patientId } }),
+      prisma.appointment.count({ where: { patientId, status: 'COMPLETED' } }),
+      prisma.appointment.count({ where: { patientId, status: { in: ['CONFIRMED', 'PENDING'] }, date: { gte: now } } }),
+      prisma.appointment.count({ where: { patientId, status: 'CANCELLED' } }),
+      (prisma as any).followUp
+        ? (prisma as any).followUp.count({ where: { patientId, status: { in: ['PENDING', 'SCHEDULED'] } } })
+        : Promise.resolve(0),
+      prisma.medicalReport.count({ where: { patientId, isConfidential: false } }),
+      prisma.appointment.findFirst({
+        where: { patientId, status: 'COMPLETED' },
+        orderBy: { date: 'desc' },
+        select: { date: true },
+      }),
+      prisma.camp.findFirst({
+        where: { status: 'UPCOMING', startDate: { gte: now } },
+        orderBy: { startDate: 'asc' },
+        select: { id: true, name: true, startDate: true },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Patient journey stats retrieved successfully',
+      data: {
+        totalAppointments,
+        completedVisits,
+        upcomingAppointments,
+        cancelledAppointments,
+        pendingFollowUps,
+        reportsAvailable,
+        lastVisitDate: lastVisitResult?.date?.toISOString() ?? null,
+        nextScheduledCamp: nextCampResult
+          ? { id: nextCampResult.id, name: nextCampResult.name, date: nextCampResult.startDate.toISOString() }
+          : null,
+      },
+    });
+  } catch (error) {
+    if (isDbConnectionError(error)) {
+      const patientId = req.user!.userId;
+      const patientAppointments = DEMO_APPOINTMENTS.filter((a) => a.patientId === patientId);
+      const patientFollowUps = DEMO_FOLLOW_UPS.filter((f) => f.patientId === patientId);
+      const patientReports = DEMO_REPORTS.filter((r) => r.patientId === patientId && !r.isConfidential);
+      const now = new Date();
+      const upcomingCamp = DEMO_CAMPS.filter((c) => c.status === 'UPCOMING' && new Date(c.startDate) >= now)
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+      const lastCompleted = patientAppointments
+        .filter((a) => a.status === 'COMPLETED')
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+      res.json({
+        success: true,
+        message: 'Patient journey stats retrieved successfully (demonstration mode)',
+        data: {
+          totalAppointments: patientAppointments.length,
+          completedVisits: patientAppointments.filter((a) => a.status === 'COMPLETED').length,
+          upcomingAppointments: patientAppointments.filter(
+            (a) => ['CONFIRMED', 'PENDING'].includes(a.status) && new Date(a.date) >= now,
+          ).length,
+          cancelledAppointments: patientAppointments.filter((a) => a.status === 'CANCELLED').length,
+          pendingFollowUps: patientFollowUps.filter((f) => ['PENDING', 'SCHEDULED'].includes(f.status)).length,
+          reportsAvailable: patientReports.length,
+          lastVisitDate: lastCompleted ? new Date(lastCompleted.date).toISOString() : null,
+          nextScheduledCamp: upcomingCamp
+            ? { id: upcomingCamp.id, name: upcomingCamp.name, date: new Date(upcomingCamp.startDate).toISOString() }
+            : null,
+        },
+      });
+      return;
+    }
     next(error);
   }
 };

@@ -7,6 +7,7 @@ import {
   updateUserAdmin,
   assignStaffToCamp,
   getCampAnalytics,
+  getOperationsStats,
 } from '../controllers/adminController';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -22,5 +23,6 @@ router.get('/users', getAdminUsers);
 router.put('/user/:id', updateUserAdmin);
 router.post('/staff-assign', assignStaffToCamp);
 router.get('/analytics', getCampAnalytics);
+router.get('/operations', getOperationsStats);
 
 export default router;

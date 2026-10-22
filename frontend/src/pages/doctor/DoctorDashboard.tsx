@@ -30,18 +30,26 @@ import { FollowUpManager } from '@/components/followups/FollowUpManager';
 export const DoctorDashboard: React.FC = () => {
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [workflowStats, setWorkflowStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeCheckupPatient, setActiveCheckupPatient] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [queueFilter, setQueueFilter] = useState<'ALL' | 'WAITING' | 'CALLED' | 'COMPLETED'>('ALL');
 
   const fetchDoctorData = async (showToast = false) => {
     try {
       if (showToast) setIsRefreshing(true);
       else setIsLoading(true);
 
-      const res = await apiClient.get('/doctors/dashboard');
+      const [res, statsRes] = await Promise.all([
+        apiClient.get('/doctors/dashboard'),
+        apiClient.get('/doctors/workflow-stats').catch(() => ({ data: { data: null } })),
+      ]);
       setDashboardData(res.data?.data);
+      if (statsRes.data?.data) {
+        setWorkflowStats(statsRes.data.data);
+      }
       if (showToast) toast.success('Patient consultation queue refreshed');
     } catch {
       // fallback handled gracefully
@@ -145,28 +153,36 @@ export const DoctorDashboard: React.FC = () => {
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
-          title="Assigned Patients"
-          value={appointments.length || 24}
+          title="Today's Consultations"
+          value={workflowStats?.todayPatients ?? appointments.length ?? 24}
           icon={Users}
           variant="primary"
+          trend="up"
+          changePeriod="in clinic schedule"
         />
         <StatCard
           title="Waiting in Queue"
           value={waitingPatients.length || 7}
           icon={AlertCircle}
           variant="warning"
+          trend={waitingPatients.length > 5 ? 'down' : 'neutral'}
+          changePeriod="next in line"
         />
         <StatCard
-          title="Consultations Completed"
-          value={completedPatients.length || 17}
+          title="Completed Consultations"
+          value={workflowStats?.completedConsultations ?? completedPatients.length ?? 17}
           icon={CheckCircle}
           variant="success"
+          trend="up"
+          changePeriod="signed diagnoses"
         />
         <StatCard
-          title="Clinical Reports Signed"
-          value={dashboardData?.reportsCount || completedPatients.length || 17}
+          title="Pending Follow-Ups"
+          value={workflowStats?.pendingFollowUps ?? 3}
           icon={FileText}
           variant="secondary"
+          trend="neutral"
+          changePeriod="scheduled review"
         />
       </div>
 
@@ -179,11 +195,55 @@ export const DoctorDashboard: React.FC = () => {
               Live Consultation Room Queue
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Assisting on-site patients currently checked-in at registration
+              Assisting on-site patients currently checked-in at registration terminal
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs">
+              <button
+                onClick={() => setQueueFilter('ALL')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  queueFilter === 'ALL'
+                    ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All ({waitingPatients.length + completedPatients.length})
+              </button>
+              <button
+                onClick={() => setQueueFilter('WAITING')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  queueFilter === 'WAITING'
+                    ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Waiting ({waitingPatients.filter((p: any) => p.status !== 'CONFIRMED').length})
+              </button>
+              <button
+                onClick={() => setQueueFilter('CALLED')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  queueFilter === 'CALLED'
+                    ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Called ({waitingPatients.filter((p: any) => p.status === 'CONFIRMED').length})
+              </button>
+              <button
+                onClick={() => setQueueFilter('COMPLETED')}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  queueFilter === 'COMPLETED'
+                    ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Completed ({completedPatients.length})
+              </button>
+            </div>
+
             {/* Search filter */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

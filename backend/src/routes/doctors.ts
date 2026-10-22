@@ -6,6 +6,7 @@ import {
   getDoctorReports,
   getDoctorAppointments,
   updateAppointmentByDoctor,
+  getDoctorWorkflowStats,
 } from '../controllers/doctorController';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -15,6 +16,7 @@ router.use(authenticate);
 router.use(authorize('DOCTOR', 'ADMIN'));
 
 router.get('/dashboard', getDoctorDashboard);
+router.get('/workflow-stats', getDoctorWorkflowStats);
 router.get('/patients', getDoctorPatients);
 router.post('/report', createMedicalReport);
 router.get('/reports', getDoctorReports);
