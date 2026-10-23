@@ -1,7 +1,7 @@
 // src/utils/constants.ts
 import type { BloodGroup, CampService, CampStatus, InventoryCategory, Specialization, UserRole } from '@/types';
 
-export const API_URL = 'http://localhost:5000/api';
+export const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
 
 export const ROLES: Record<UserRole, string> = {
   patient: 'Patient',
