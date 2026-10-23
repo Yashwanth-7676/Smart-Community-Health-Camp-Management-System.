@@ -20,6 +20,7 @@ import { generateTokenPair } from '../src/utils/jwt';
 let totalTests = 0;
 let passedTests = 0;
 let failedTests = 0;
+let serverInstance: http.Server | null = null;
 
 function assert(condition: boolean, testName: string, details?: string) {
   totalTests++;
@@ -32,6 +33,23 @@ function assert(condition: boolean, testName: string, details?: string) {
   }
 }
 
+async function ensureServer(): Promise<string> {
+  try {
+    const res = await fetch('http://127.0.0.1:5000/health', { signal: AbortSignal.timeout(1000) });
+    if (res.ok) {
+      return 'http://127.0.0.1:5000/api/v1';
+    }
+  } catch {}
+
+  return new Promise((resolve) => {
+    serverInstance = app.listen(0, '127.0.0.1', () => {
+      const addr = serverInstance!.address() as any;
+      console.log(`[QA Test Harness] Live in-process API server active on http://127.0.0.1:${addr.port}/api/v1\n`);
+      resolve(`http://127.0.0.1:${addr.port}/api/v1`);
+    });
+  });
+}
+
 async function request(
   baseUrl: string,
   method: string,
@@ -39,43 +57,25 @@ async function request(
   token?: string,
   body?: any
 ): Promise<{ status: number; body: any }> {
-  return new Promise((resolve, reject) => {
-    const fullUrl = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
-    const url = new URL(fullUrl);
-    const postData = body ? JSON.stringify(body) : '';
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (body) headers['Content-Length'] = Buffer.byteLength(postData).toString();
+  const fullUrl = `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const req = http.request(
-      url,
-      { method, headers, timeout: 8000 },
-      (res) => {
-        let raw = '';
-        res.on('data', (chunk) => (raw += chunk));
-        res.on('end', () => {
-          let parsed = {};
-          try {
-            parsed = raw ? JSON.parse(raw) : {};
-          } catch {
-            parsed = { rawText: raw };
-          }
-          resolve({ status: res.statusCode || 500, body: parsed });
-        });
-      }
-    );
-
-    req.on('error', reject);
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error(`HTTP request timed out: ${method} ${path}`));
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (body) req.write(postData);
-    req.end();
-  });
+    const parsed = await res.json().catch(() => ({}));
+    return { status: res.status, body: parsed };
+  } catch (err: any) {
+    console.error(`[Fetch Error] ${method} ${fullUrl}:`, err?.message || err);
+    return { status: 500, body: { error: err?.message || 'Network error' } };
+  }
 }
 
 async function runUpgrade11Suite() {
@@ -83,12 +83,7 @@ async function runUpgrade11Suite() {
   console.log('🚀 UPGRADE 11: SMART COMMUNITY HEALTHCARE ECOSYSTEM 2.0');
   console.log('========================================================================\n');
 
-  // Spawn in-process HTTP server for isolated testing
-  const server = http.createServer(app);
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
-  const address = server.address() as any;
-  const baseUrl = `http://127.0.0.1:${address.port}/api/v1`;
-  console.log(`[QA Test Harness] Live in-process API server active on ${baseUrl}\n`);
+  const baseUrl = await ensureServer();
 
   try {
     // Generate authorized tokens
@@ -263,7 +258,9 @@ async function runUpgrade11Suite() {
       console.log('🎉 UPGRADE 11 COMPREHENSIVE VERIFICATION SUITE COMPLETED WITH 100% PASS RATE!\n');
     }
   } finally {
-    server.close();
+    if (serverInstance) {
+      serverInstance.close();
+    }
   }
 }
 
