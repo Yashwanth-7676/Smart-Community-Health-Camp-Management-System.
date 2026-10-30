@@ -389,3 +389,4 @@ export const DistrictIntelligenceScoreModal: React.FC<DistrictIntelligenceScoreM
 };
 
 export default DistrictIntelligenceScoreModal;
+

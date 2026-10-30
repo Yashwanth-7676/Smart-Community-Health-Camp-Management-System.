@@ -210,3 +210,4 @@ export const GeoObservatoryRightSidebar: React.FC<GeoObservatoryRightSidebarProp
 };
 
 export default GeoObservatoryRightSidebar;
+

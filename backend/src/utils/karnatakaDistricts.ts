@@ -330,3 +330,4 @@ export const KARNATAKA_DISTRICTS_DATA: DistrictDemographics[] = [
     notes: 'Dense Western Ghats tropical forest terrain with isolated coastal and ghat settlements.',
   },
 ];
+

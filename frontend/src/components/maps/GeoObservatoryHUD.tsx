@@ -271,3 +271,4 @@ export const GeoObservatoryHUD: React.FC<GeoObservatoryHUDProps> = ({
 };
 
 export default GeoObservatoryHUD;
+

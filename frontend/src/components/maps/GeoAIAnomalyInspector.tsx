@@ -423,3 +423,4 @@ export const GeoAIAnomalyInspector: React.FC<GeoAIAnomalyInspectorProps> = ({
 };
 
 export default GeoAIAnomalyInspector;
+

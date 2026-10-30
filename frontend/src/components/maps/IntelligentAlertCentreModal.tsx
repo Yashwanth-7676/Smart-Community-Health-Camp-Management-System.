@@ -425,3 +425,4 @@ export const IntelligentAlertCentreModal: React.FC<IntelligentAlertCentreModalPr
 };
 
 export default IntelligentAlertCentreModal;
+
