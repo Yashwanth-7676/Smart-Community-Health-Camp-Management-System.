@@ -371,3 +371,4 @@ export const MultiRegionComparisonModal: React.FC<MultiRegionComparisonModalProp
 };
 
 export default MultiRegionComparisonModal;
+

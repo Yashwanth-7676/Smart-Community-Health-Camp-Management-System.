@@ -83,6 +83,17 @@ import ResourceFlow3D from './ResourceFlow3D';
 import AIScenarioLab from './AIScenarioLab';
 import GeographicImpactExplorer from './GeographicImpactExplorer';
 import MultiRegionComparisonModal from './MultiRegionComparisonModal';
+import GeoObservatoryHUD, { GeoObservatoryMode } from './GeoObservatoryHUD';
+import GeoAIAnomalyInspector from './GeoAIAnomalyInspector';
+import EnvironmentalIntelligenceOverlay from './EnvironmentalIntelligenceOverlay';
+import HealthTimeMachineScrubber from './HealthTimeMachineScrubber';
+import DistrictIntelligenceScoreModal from './DistrictIntelligenceScoreModal';
+import IntelligentAlertCentreModal from './IntelligentAlertCentreModal';
+import RapidDeploymentPlannerModal from './RapidDeploymentPlannerModal';
+import AskHealthcareMapModal from './AskHealthcareMapModal';
+import DataSourcesRegistryModal from './DataSourcesRegistryModal';
+import GeoObservatoryRightSidebar from './GeoObservatoryRightSidebar';
+import PublicHealthIntelligenceLayers from './PublicHealthIntelligenceLayers';
 import { fetchCampRoute, RouteData } from '@/services/routingService';
 import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/api/client';
@@ -255,6 +266,15 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
   const [simulationCandidateCoords, setSimulationCandidateCoords] = useState<[number, number] | null>([17.18, 77.28]);
   const [isPickingSimulationCoords, setIsPickingSimulationCoords] = useState<boolean>(false);
   const [selectedSettlement, setSelectedSettlement] = useState<RuralSettlementItem | null>(null);
+
+  // GeoAI Public Health Observatory (Mega Upgrade 5.0)
+  const [geoObservatoryMode, setGeoObservatoryMode] = useState<GeoObservatoryMode>('LIVE_OPERATIONS');
+  const [activeDateRange, setActiveDateRange] = useState<string>('30d');
+  const [activeAnomaliesCount, setActiveAnomaliesCount] = useState<number>(4);
+  const [criticalAlertsCount, setCriticalAlertsCount] = useState<number>(2);
+  const [averageStateScore, setAverageStateScore] = useState<number>(79.4);
+  const [pickedDeploymentCoords, setPickedDeploymentCoords] = useState<[number, number] | null>(null);
+  const [isPickingDeploymentCoords, setIsPickingDeploymentCoords] = useState<boolean>(false);
 
   // GIS Camp Creator tool (Admin Mode)
   const [gisPinToolActive, setGisPinToolActive] = useState<boolean>(false);
@@ -516,6 +536,20 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
       setSimulationCandidateCoords([clampedLat, clampedLng]);
       setIsPickingSimulationCoords(false);
       toast.success(`Simulation point set to [${clampedLat}, ${clampedLng}]. Concentric rings recalculated.`);
+      return;
+    }
+
+    if (isPickingDeploymentCoords) {
+      e.stopPropagation();
+      const point = e.point;
+      if (!point) return;
+      const [lat, lng] = unproject3DToLatLng(point.x, point.z, activeProjection);
+      const clampedLat = Number(Math.max(11.4, Math.min(18.3, lat)).toFixed(4));
+      const clampedLng = Number(Math.max(74.0, Math.min(78.9, lng)).toFixed(4));
+      setPickedDeploymentCoords([clampedLat, clampedLng]);
+      setIsPickingDeploymentCoords(false);
+      toast.success(`Emergency deployment site set to [${clampedLat}, ${clampedLng}].`);
+      setGeoObservatoryMode('RAPID_DEPLOYMENT');
     }
   };
 
@@ -672,33 +706,45 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
       />
 
       {/* ------------------------------------------------------------- */}
-      {/* 0. FULLSCREEN HEALTHCARE INTELLIGENCE COMMAND CENTER HUD       */}
+      {/* 0. GEOAI PUBLIC HEALTH OBSERVATORY COMMAND HUD (Mega 5.0)     */}
       {/* ------------------------------------------------------------- */}
-      <CommandCenterHUD
-        currentMode={workspaceMode}
+      <GeoObservatoryHUD
+        currentMode={geoObservatoryMode}
         onSelectMode={(mode) => {
-          setWorkspaceMode(mode);
-          if (mode === 'COVERAGE_SIMULATION') {
-            setIsPickingSimulationCoords(true);
-            toast('Click anywhere on the 3D map to position hypothetical health camp.');
+          setGeoObservatoryMode(mode);
+          if (mode === 'RAPID_DEPLOYMENT') {
+            setIsPickingDeploymentCoords(true);
+            toast('Click anywhere on the 3D map to select emergency response coordinates.');
           }
         }}
-        onOpenMultiRegionComparison={() => setMultiRegionComparisonOpen(true)}
         onResetCamera={handleResetCamera}
         isFullscreen={isFullscreen}
         onToggleFullscreen={onToggleFullscreen}
         mapDimension={mapDimension}
         onToggleDimension={onToggleDimension}
-        isLive={isLive && !isStale}
-        totalCampsCount={timelineFilteredCamps.length}
-        activeFleetCount={3}
-        activeVillagesCount={10}
+        activeAnomaliesCount={activeAnomaliesCount}
+        criticalAlertsCount={criticalAlertsCount}
+        averageStateScore={averageStateScore}
+        selectedDateRange={activeDateRange}
+        onDateRangeChange={setActiveDateRange}
       />
+
+      {/* ------------------------------------------------------------- */}
+      {/* 0B. RIGHT COMMAND SURVEILLANCE SIDEBAR (Module 10)            */}
+      {/* ------------------------------------------------------------- */}
+      {selectedDistrict && (
+        <GeoObservatoryRightSidebar
+          selectedDistrict={selectedDistrict}
+          onClose={() => setSelectedDistrict(null)}
+          onOpenAnomalyInspector={() => setGeoObservatoryMode('GEOAI_ANOMALIES')}
+          onOpenDeploymentPlanner={() => setGeoObservatoryMode('RAPID_DEPLOYMENT')}
+        />
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* 2. SECONDARY CONTROLS (Active in Live Operations)             */}
       {/* ------------------------------------------------------------- */}
-      {workspaceMode === 'LIVE_OPERATIONS' && (
+      {geoObservatoryMode === 'LIVE_OPERATIONS' && (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-2 max-w-2xl px-2">
           {/* Region Focus Selector */}
           <div className="flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 shadow-2xl">
@@ -1329,6 +1375,15 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
               </mesh>
             </group>
           )}
+
+          {/* 12. GeoAI 3D Public Health Intelligence Layers (Module 1 & 11) */}
+          {(geoObservatoryMode === 'PUBLIC_HEALTH_INTEL' || layers.heatmap) && regionFocus === 'karnataka' && (
+            <PublicHealthIntelligenceLayers
+              projection={activeProjection}
+              onSelectDistrict={handleFocusDistrict}
+              selectedDistrictId={selectedDistrict?.districtId}
+            />
+          )}
         </Canvas>
       </WebGLBoundary>
 
@@ -1739,6 +1794,113 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
         isOpen={multiRegionComparisonOpen}
         onClose={() => setMultiRegionComparisonOpen(false)}
         onFocusDistrict={handleFocusDistrict}
+      />
+
+      {/* ------------------------------------------------------------- */}
+      {/* 12. GEOAI PUBLIC HEALTH OBSERVATORY 5.0 MODALS & ENGINES      */}
+      {/* ------------------------------------------------------------- */}
+      <HealthTimeMachineScrubber
+        isOpen={geoObservatoryMode === 'HEALTH_TIME_MACHINE'}
+      />
+
+      <GeoAIAnomalyInspector
+        isOpen={geoObservatoryMode === 'GEOAI_ANOMALIES'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
+        onFocusDistrict={(distName) => {
+          const found = KARNATAKA_DISTRICTS_DATA.find((d) =>
+            d.name.toLowerCase().includes(distName.toLowerCase())
+          );
+          if (found) {
+            handleFocusDistrict(found);
+            setFlyTargetCoords([found.latitude, found.longitude]);
+            setCameraPreset('drone');
+          }
+        }}
+        isAdmin={isAdmin}
+      />
+
+      <EnvironmentalIntelligenceOverlay
+        isOpen={geoObservatoryMode === 'ENVIRONMENTAL_INTEL'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
+        onFocusDistrict={(distName) => {
+          const found = KARNATAKA_DISTRICTS_DATA.find((d) =>
+            d.name.toLowerCase().includes(distName.toLowerCase())
+          );
+          if (found) {
+            handleFocusDistrict(found);
+            setFlyTargetCoords([found.latitude, found.longitude]);
+            setCameraPreset('drone');
+          }
+        }}
+      />
+
+      <DistrictIntelligenceScoreModal
+        isOpen={geoObservatoryMode === 'DISTRICT_SCORES'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
+        onFocusDistrict={(distName) => {
+          const found = KARNATAKA_DISTRICTS_DATA.find((d) =>
+            d.name.toLowerCase().includes(distName.toLowerCase())
+          );
+          if (found) {
+            handleFocusDistrict(found);
+            setFlyTargetCoords([found.latitude, found.longitude]);
+            setCameraPreset('drone');
+          }
+        }}
+      />
+
+      <IntelligentAlertCentreModal
+        isOpen={geoObservatoryMode === 'INTELLIGENT_ALERTS'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
+        onFocusDistrict={(distName) => {
+          const found = KARNATAKA_DISTRICTS_DATA.find((d) =>
+            d.name.toLowerCase().includes(distName.toLowerCase())
+          );
+          if (found) {
+            handleFocusDistrict(found);
+            setFlyTargetCoords([found.latitude, found.longitude]);
+            setCameraPreset('drone');
+          }
+        }}
+        isAdmin={isAdmin}
+      />
+
+      <RapidDeploymentPlannerModal
+        isOpen={geoObservatoryMode === 'RAPID_DEPLOYMENT'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
+        candidateCoords={pickedDeploymentCoords}
+        onPickCoordsOnMap={() => {
+          setIsPickingDeploymentCoords(true);
+          toast('Click anywhere on the 3D map to select emergency response coordinates.');
+        }}
+        onFocusDistrict={(distName) => {
+          const found = KARNATAKA_DISTRICTS_DATA.find((d) =>
+            d.name.toLowerCase().includes(distName.toLowerCase())
+          );
+          if (found) {
+            handleFocusDistrict(found);
+            setFlyTargetCoords([found.latitude, found.longitude]);
+            setCameraPreset('drone');
+          }
+        }}
+      />
+
+      <AskHealthcareMapModal
+        isOpen={geoObservatoryMode === 'ASK_MAP_AI'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
+        onFocusCoordinates={(coords) => {
+          setFlyTargetCoords(coords);
+          setCameraPreset('drone');
+        }}
+        onHighlightDistricts={(distIds) => {
+          const found = KARNATAKA_DISTRICTS_DATA.find((d) => distIds.includes(d.districtId));
+          if (found) handleFocusDistrict(found);
+        }}
+      />
+
+      <DataSourcesRegistryModal
+        isOpen={geoObservatoryMode === 'DATA_QUALITY_REGISTRY'}
+        onClose={() => setGeoObservatoryMode('LIVE_OPERATIONS')}
       />
     </div>
   );

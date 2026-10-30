@@ -33,6 +33,7 @@ import followUpRoutes from './routes/followUps';
 import commandCenterRoutes from './routes/commandCenter';
 import digitalHealthIdRoutes from './routes/digitalHealthId';
 import aiPlannerRoutes from './routes/aiPlanner';
+import geoObservatoryRoutes from './routes/geoObservatory';
 
 const app: Application = express();
 const isProduction = env.NODE_ENV === 'production';
@@ -150,6 +151,7 @@ app.use('/api', generalLimiter);
   app.use(`${prefix}/command-center`, commandCenterRoutes);
   app.use(`${prefix}/health-id`, digitalHealthIdRoutes);
   app.use(`${prefix}/ai-planner`, aiPlannerRoutes);
+  app.use(`${prefix}/geo-observatory`, geoObservatoryRoutes);
 });
 
 // ========================

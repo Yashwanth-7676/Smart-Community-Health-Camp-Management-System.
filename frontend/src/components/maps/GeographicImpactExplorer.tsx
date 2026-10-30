@@ -460,3 +460,4 @@ export const GeographicImpactExplorer: React.FC<GeographicImpactExplorerProps> =
 };
 
 export default GeographicImpactExplorer;
+

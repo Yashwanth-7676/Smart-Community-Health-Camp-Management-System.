@@ -248,3 +248,4 @@ export const AIScenarioLab: React.FC<AIScenarioLabProps> = ({
 };
 
 export default AIScenarioLab;
+
