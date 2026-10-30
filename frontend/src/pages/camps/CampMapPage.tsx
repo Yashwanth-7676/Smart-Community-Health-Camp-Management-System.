@@ -933,6 +933,12 @@ export const CampMapPage: React.FC = () => {
                     slotsOnly={slotsOnly}
                     onSlotsOnlyChange={setSlotsOnly}
                     availableServices={availableServicesList}
+                    onCampCreated={(newCamp) => {
+                      if (newCamp && newCamp.id) {
+                        setCamps((prev) => [newCamp, ...prev]);
+                        toast.success('Camp successfully added to map dataset!');
+                      }
+                    }}
                   />
                 </React.Suspense>
               ) : (

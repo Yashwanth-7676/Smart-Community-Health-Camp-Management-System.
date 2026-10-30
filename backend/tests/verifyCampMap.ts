@@ -89,7 +89,7 @@ describe('Health Camp Discovery Map Verification Suite', () => {
   const adminToken = signAccessToken({
     userId: 'admin-1',
     email: 'admin@healthcamp.gov.in',
-    role: 'admin',
+    role: 'ADMIN',
     firstName: 'System',
     lastName: 'Admin',
   });
@@ -97,7 +97,7 @@ describe('Health Camp Discovery Map Verification Suite', () => {
   const patientToken = signAccessToken({
     userId: 'patient-1',
     email: 'patient@example.com',
-    role: 'patient',
+    role: 'PATIENT',
     firstName: 'Ramesh',
     lastName: 'Kumar',
   });

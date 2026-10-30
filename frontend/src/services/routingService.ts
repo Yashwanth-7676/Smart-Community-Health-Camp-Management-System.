@@ -11,6 +11,7 @@ export interface RouteData {
   isFallback: boolean;
   provider: string;
   disclaimer: string;
+  destinationCampName?: string;
 }
 
 export async function fetchCampRoute(
