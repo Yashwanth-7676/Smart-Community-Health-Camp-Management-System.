@@ -438,3 +438,4 @@ export const VERIFIED_HEALTHCARE_FACILITIES: HealthcareFacility[] = [
     description: 'Operates in arid north-eastern agrarian blocks to identify undetected diabetic and hypertensive patients.',
   },
 ];
+

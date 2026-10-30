@@ -74,6 +74,15 @@ import { Route3DRibbon } from './Route3DRibbon';
 import { CampComparisonDrawer } from './CampComparisonDrawer';
 import { CoverageGapExplorerModal } from './CoverageGapExplorerModal';
 import { MultiCampPlannerModal } from './MultiCampPlannerModal';
+import CommandCenterHUD, { WorkspaceMode } from './CommandCenterHUD';
+import HealthcareCoverageSimulator from './HealthcareCoverageSimulator';
+import RuralAccessibilityExplorer, { RuralSettlementItem } from './RuralAccessibilityExplorer';
+import EmergencyResponseHUD from './EmergencyResponseHUD';
+import MobileUnitFleetTracker from './MobileUnitFleetTracker';
+import ResourceFlow3D from './ResourceFlow3D';
+import AIScenarioLab from './AIScenarioLab';
+import GeographicImpactExplorer from './GeographicImpactExplorer';
+import MultiRegionComparisonModal from './MultiRegionComparisonModal';
 import { fetchCampRoute, RouteData } from '@/services/routingService';
 import { useAuth } from '@/hooks/useAuth';
 import apiClient from '@/api/client';
@@ -239,6 +248,13 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
   const [comparisonOpen, setComparisonOpen] = useState<boolean>(false);
   const [coverageModalOpen, setCoverageModalOpen] = useState<boolean>(false);
   const [multiPlannerOpen, setMultiPlannerOpen] = useState<boolean>(false);
+
+  // Healthcare Intelligence Workspace Modes (Mega Upgrade 4.0)
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('LIVE_OPERATIONS');
+  const [multiRegionComparisonOpen, setMultiRegionComparisonOpen] = useState<boolean>(false);
+  const [simulationCandidateCoords, setSimulationCandidateCoords] = useState<[number, number] | null>([17.18, 77.28]);
+  const [isPickingSimulationCoords, setIsPickingSimulationCoords] = useState<boolean>(false);
+  const [selectedSettlement, setSelectedSettlement] = useState<RuralSettlementItem | null>(null);
 
   // GIS Camp Creator tool (Admin Mode)
   const [gisPinToolActive, setGisPinToolActive] = useState<boolean>(false);
@@ -476,23 +492,31 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
     [userCoords]
   );
 
-  // GIS Map Click Handler (Admin Pinning Tool)
+  // GIS Map Click Handler (Admin Pinning Tool & Simulation Point Picker)
   const handleMapPlaneClick = (e: any) => {
-    if (!gisPinToolActive || !isAdmin) return;
-    e.stopPropagation();
+    if (gisPinToolActive && isAdmin) {
+      e.stopPropagation();
+      const point = e.point;
+      if (!point) return;
+      const [lat, lng] = unproject3DToLatLng(point.x, point.z, activeProjection);
+      const clampedLat = Math.max(11.4, Math.min(18.3, lat));
+      const clampedLng = Math.max(74.0, Math.min(78.9, lng));
+      setGisClickedCoords([clampedLat, clampedLng]);
+      setGisModalOpen(true);
+      return;
+    }
 
-    const point = e.point;
-    if (!point) return;
-
-    // Convert 3D X and Z back into authentic Latitude and Longitude
-    const [lat, lng] = unproject3DToLatLng(point.x, point.z, activeProjection);
-
-    // Clamp within Karnataka bounds
-    const clampedLat = Math.max(11.4, Math.min(18.3, lat));
-    const clampedLng = Math.max(74.0, Math.min(78.9, lng));
-
-    setGisClickedCoords([clampedLat, clampedLng]);
-    setGisModalOpen(true);
+    if (workspaceMode === 'COVERAGE_SIMULATION' && isPickingSimulationCoords) {
+      e.stopPropagation();
+      const point = e.point;
+      if (!point) return;
+      const [lat, lng] = unproject3DToLatLng(point.x, point.z, activeProjection);
+      const clampedLat = Number(Math.max(11.4, Math.min(18.3, lat)).toFixed(4));
+      const clampedLng = Number(Math.max(74.0, Math.min(78.9, lng)).toFixed(4));
+      setSimulationCandidateCoords([clampedLat, clampedLng]);
+      setIsPickingSimulationCoords(false);
+      toast.success(`Simulation point set to [${clampedLat}, ${clampedLng}]. Concentric rings recalculated.`);
+    }
   };
 
   // Compare toggling
@@ -648,87 +672,113 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
       />
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. TOP-CENTER NAVIGATION BAR: Region, Telemetry & Mode Toggles */}
+      {/* 0. FULLSCREEN HEALTHCARE INTELLIGENCE COMMAND CENTER HUD       */}
       {/* ------------------------------------------------------------- */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-2 max-w-2xl px-2">
-        {/* Region Focus Selector */}
-        <div className="flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 shadow-2xl">
+      <CommandCenterHUD
+        currentMode={workspaceMode}
+        onSelectMode={(mode) => {
+          setWorkspaceMode(mode);
+          if (mode === 'COVERAGE_SIMULATION') {
+            setIsPickingSimulationCoords(true);
+            toast('Click anywhere on the 3D map to position hypothetical health camp.');
+          }
+        }}
+        onOpenMultiRegionComparison={() => setMultiRegionComparisonOpen(true)}
+        onResetCamera={handleResetCamera}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={onToggleFullscreen}
+        mapDimension={mapDimension}
+        onToggleDimension={onToggleDimension}
+        isLive={isLive && !isStale}
+        totalCampsCount={timelineFilteredCamps.length}
+        activeFleetCount={3}
+        activeVillagesCount={10}
+      />
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. SECONDARY CONTROLS (Active in Live Operations)             */}
+      {/* ------------------------------------------------------------- */}
+      {workspaceMode === 'LIVE_OPERATIONS' && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-2 max-w-2xl px-2">
+          {/* Region Focus Selector */}
+          <div className="flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => handleSwitchRegion('karnataka')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                regionFocus === 'karnataka'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" /> Karnataka 3D
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchRegion('india')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                regionFocus === 'india'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> All India
+            </button>
+          </div>
+
+          {/* Live Operations Mode Toggle (Phase 9) */}
           <button
             type="button"
-            onClick={() => handleSwitchRegion('karnataka')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-              regionFocus === 'karnataka'
-                ? 'bg-cyan-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <MapPin className="w-3.5 h-3.5" /> Karnataka 3D
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSwitchRegion('india')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-              regionFocus === 'india'
-                ? 'bg-cyan-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" /> All India
-          </button>
-        </div>
-
-        {/* Live Operations Mode Toggle (Phase 9) */}
-        <button
-          type="button"
-          onClick={() => setLiveOpsMode(!liveOpsMode)}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 transition shadow-lg ${
-            liveOpsMode
-              ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
-              : 'bg-slate-900/90 text-emerald-400 border-emerald-500/40 hover:bg-slate-800'
-          }`}
-          title="Toggle Real-Time Healthcare Command Center"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          <span>Live Command</span>
-        </button>
-
-        {/* AI Smart Planner Toggle (Phase 8) */}
-        <button
-          type="button"
-          onClick={() => setAiPlannerActive(!aiPlannerActive)}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 transition shadow-lg ${
-            aiPlannerActive
-              ? 'bg-purple-600 text-white border-purple-400 shadow-purple-500/30'
-              : 'bg-slate-900/90 text-purple-400 border-purple-500/40 hover:bg-slate-800'
-          }`}
-          title="AI-Assisted Underserved Camp Allocator"
-        >
-          <Cpu className="w-3.5 h-3.5" />
-          <span>AI Planner {aiPlannerActive && '• ON'}</span>
-        </button>
-
-        {/* Admin GIS Pinning Tool (Phase 10) */}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => {
-              setGisPinToolActive(!gisPinToolActive);
-              if (!gisPinToolActive) {
-                toast.success('GIS Pinning Tool Active: Click anywhere on the 3D map to deploy a new camp!');
-              }
-            }}
+            onClick={() => setLiveOpsMode(!liveOpsMode)}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 transition shadow-lg ${
-              gisPinToolActive
-                ? 'bg-amber-500 text-slate-950 border-amber-400 animate-bounce'
-                : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
+              liveOpsMode
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
+                : 'bg-slate-900/90 text-emerald-400 border-emerald-500/40 hover:bg-slate-800'
             }`}
-            title="Deploy Health Camp by clicking map location"
+            title="Toggle Real-Time Healthcare Command Center"
           >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{gisPinToolActive ? 'Click 3D Ground to Pin' : 'Deploy GIS Camp'}</span>
+            <Zap className="w-3.5 h-3.5" />
+            <span>Live Command</span>
           </button>
-        )}
-      </div>
+
+          {/* AI Smart Planner Toggle (Phase 8) */}
+          <button
+            type="button"
+            onClick={() => setAiPlannerActive(!aiPlannerActive)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 transition shadow-lg ${
+              aiPlannerActive
+                ? 'bg-purple-600 text-white border-purple-400 shadow-purple-500/30'
+                : 'bg-slate-900/90 text-purple-400 border-purple-500/40 hover:bg-slate-800'
+            }`}
+            title="AI-Assisted Underserved Camp Allocator"
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            <span>AI Planner {aiPlannerActive && '• ON'}</span>
+          </button>
+
+          {/* Admin GIS Pinning Tool (Phase 10) */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setGisPinToolActive(!gisPinToolActive);
+                if (!gisPinToolActive) {
+                  toast.success('GIS Pinning Tool Active: Click anywhere on the 3D map to deploy a new camp!');
+                }
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 transition shadow-lg ${
+                gisPinToolActive
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 animate-bounce'
+                  : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
+              }`}
+              title="Deploy Health Camp by clicking map location"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>{gisPinToolActive ? 'Click 3D Ground to Pin' : 'Deploy GIS Camp'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* 2B. LIVE OPERATIONS TELEMETRY HUD (Phase 9)                   */}
@@ -1232,6 +1282,53 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
                 </group>
               );
             })}
+
+          {/* 10. 3D Healthcare Resource Flow & Inventory Transfers (Module 5) */}
+          {(workspaceMode === 'RESOURCE_FLOW' || layers.networkArcs) && regionFocus === 'karnataka' && (
+            <ResourceFlow3D
+              camps={timelineFilteredCamps}
+              projection={activeProjection}
+              prefersReducedMotion={isLowPower}
+            />
+          )}
+
+          {/* 11. Concentric Coverage Simulation Rings in 3D (Module 1) */}
+          {workspaceMode === 'COVERAGE_SIMULATION' && simulationCandidateCoords && (
+            <group
+              position={[
+                ...projectLatLngTo3D(
+                  simulationCandidateCoords[0],
+                  simulationCandidateCoords[1],
+                  activeProjection
+                ),
+              ]}
+            >
+              {/* 5km Primary Ring */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+                <ringGeometry args={[0.35, 0.38, 36]} />
+                <meshBasicMaterial color="#38bdf8" transparent opacity={0.8} side={THREE.DoubleSide} />
+              </mesh>
+              {/* 15km Secondary Ring */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+                <ringGeometry args={[1.05, 1.1, 48]} />
+                <meshBasicMaterial color="#a855f7" transparent opacity={0.65} side={THREE.DoubleSide} />
+              </mesh>
+              {/* 40km Tertiary Ring */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+                <ringGeometry args={[2.8, 2.86, 64]} />
+                <meshBasicMaterial color="#f59e0b" transparent opacity={0.4} side={THREE.DoubleSide} />
+              </mesh>
+              {/* Simulation Beacon Pin */}
+              <mesh position={[0, 0.5, 0]}>
+                <cylinderGeometry args={[0.06, 0.01, 1, 16]} />
+                <meshStandardMaterial color="#a855f7" emissive="#7c3aed" emissiveIntensity={0.8} />
+              </mesh>
+              <mesh position={[0, 1.05, 0]}>
+                <sphereGeometry args={[0.18, 16, 16]} />
+                <meshStandardMaterial color="#ec4899" emissive="#db2777" emissiveIntensity={0.9} />
+              </mesh>
+            </group>
+          )}
         </Canvas>
       </WebGLBoundary>
 
@@ -1579,6 +1676,70 @@ export const Camp3DMap: React.FC<Camp3DMapProps> = ({
           onFocusCamp={handleFocusCamp}
         />
       )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 11. MEGA UPGRADE 4.0 INTELLIGENCE WORKSPACES & MODALS         */}
+      {/* ------------------------------------------------------------- */}
+      <HealthcareCoverageSimulator
+        isOpen={workspaceMode === 'COVERAGE_SIMULATION'}
+        onClose={() => setWorkspaceMode('LIVE_OPERATIONS')}
+        candidateCoords={simulationCandidateCoords}
+        onPickCoordsOnMap={() => {
+          setIsPickingSimulationCoords(true);
+          toast('Click on the 3D terrain to update candidate coordinates.');
+        }}
+        isPickingCoords={isPickingSimulationCoords}
+      />
+
+      <RuralAccessibilityExplorer
+        isOpen={workspaceMode === 'RURAL_ACCESSIBILITY'}
+        onClose={() => setWorkspaceMode('LIVE_OPERATIONS')}
+        onFocusSettlement={(v) => {
+          setFlyTargetCoords([v.latitude, v.longitude]);
+          setCameraPreset('drone');
+          setSelectedSettlement(v);
+        }}
+        selectedSettlement={selectedSettlement}
+        onSelectSettlement={setSelectedSettlement}
+      />
+
+      <EmergencyResponseHUD
+        isOpen={workspaceMode === 'EMERGENCY_DISPATCH'}
+        onClose={() => setWorkspaceMode('LIVE_OPERATIONS')}
+        camps={timelineFilteredCamps}
+        onPlanEmergencyRoute={(_coords, fac) =>
+          handlePlanFacilityRoute(fac)
+        }
+        onFocusFacility={handleFocusFacility}
+      />
+
+      <MobileUnitFleetTracker
+        isOpen={workspaceMode === 'MMU_FLEET'}
+        onClose={() => setWorkspaceMode('LIVE_OPERATIONS')}
+        onFocusMMU={(coords) => {
+          setFlyTargetCoords(coords);
+          setCameraPreset('drone');
+        }}
+        isAdmin={isAdmin}
+      />
+
+      <AIScenarioLab
+        isOpen={workspaceMode === 'AI_SCENARIO_LAB'}
+        onClose={() => setWorkspaceMode('LIVE_OPERATIONS')}
+      />
+
+      <GeographicImpactExplorer
+        isOpen={workspaceMode === 'IMPACT_ANALYTICS'}
+        onClose={() => setWorkspaceMode('LIVE_OPERATIONS')}
+        camps={timelineFilteredCamps}
+        onFocusDistrict={handleFocusDistrict}
+      />
+
+      <MultiRegionComparisonModal
+        isOpen={multiRegionComparisonOpen}
+        onClose={() => setMultiRegionComparisonOpen(false)}
+        onFocusDistrict={handleFocusDistrict}
+      />
     </div>
   );
 };

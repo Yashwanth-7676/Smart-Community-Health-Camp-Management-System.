@@ -353,3 +353,4 @@ export const KARNATAKA_DISTRICTS_DATA: DistrictDemographics[] = [
     notes: 'Plateau-Malnad transitional belt connecting coastal transport corridors to central plains.',
   },
 ];
+
