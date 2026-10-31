@@ -27,6 +27,9 @@ A complete, production-grade, full-stack healthcare web application designed for
 - **Medical Documentation & Reports**:
   - Server-side PDF generation for clinical reports and inventory stock status via PDFKit.
   - Vital signs recording, doctor observations, diagnoses, and hospital referrals.
+- **Community Health Knowledge Academy**:
+  - Searchable English and Kannada learning resources, published only after independent content and translation review.
+  - User-specific lesson bookmarks and completion tracking, with source references for reviewed content.
 - **PWA (Progressive Web App) & Offline Sync**:
   - Service worker caching (`sw.js`) and web app manifest (`manifest.json`).
   - IndexedDB offline registration queue with automatic conflict resolution upon reconnection.
@@ -44,7 +47,7 @@ A complete, production-grade, full-stack healthcare web application designed for
 | **3D & Canvas** | Three.js, React Three Fiber (`@react-three/fiber`), Drei (`@react-three/drei`) |
 | **Animations** | Framer Motion, GSAP |
 | **Backend Runtime** | Node.js, Express, TypeScript |
-| **Database & ORM** | PostgreSQL, Prisma ORM (20 models & 9 enums) |
+| **Database & ORM** | PostgreSQL, Prisma ORM (24 models & 16 enums) |
 | **Security & Auth** | JWT (Access + Refresh tokens), bcryptjs, express-rate-limit, Helmet |
 | **Document & QR Generation** | PDFKit, QRCode |
 | **Maps & Analytics** | Leaflet, OpenStreetMap, Recharts |
@@ -59,7 +62,7 @@ A complete, production-grade, full-stack healthcare web application designed for
 Smart community health camp management system/
 ├── backend/
 │   ├── prisma/
-│   │   ├── schema.prisma          # 20 relational models & 9 enums
+│   │   ├── schema.prisma          # 24 relational models & 16 enums
 │   │   └── seed.ts                # Realistic demo seeder
 │   ├── src/
 │   │   ├── controllers/           # Business logic & endpoints
@@ -70,6 +73,7 @@ Smart community health camp management system/
 │   │   │   ├── authController.ts
 │   │   │   ├── campController.ts
 │   │   │   ├── consentController.ts
+│   │   │   ├── educationController.ts
 │   │   │   ├── inventoryController.ts
 │   │   │   ├── passwordResetController.ts
 │   │   │   ├── pdfController.ts
@@ -156,13 +160,13 @@ NODE_ENV=development
 CORS_ORIGIN=http://localhost:3000,http://localhost:5173
 ```
 
-Run migrations and database seeder:
+Synchronize the Prisma schema and generate the client:
 ```powershell
-# Generate Prisma Client with all 20 models
-npx prisma generate
+# Apply the current Prisma schema (this repository has no baseline migration history)
+npx prisma db push
 
-# Apply migrations
-npx prisma migrate dev --name init
+# Generate Prisma Client
+npx prisma generate
 
 # Seed database with realistic demo data
 npx prisma db seed

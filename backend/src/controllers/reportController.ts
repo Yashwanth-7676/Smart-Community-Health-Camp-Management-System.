@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, Role } from '@prisma/client';
+import { AuditAction, PrismaClient, ReportStatus, Role } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { isDbConnectionError } from '../utils/mockStore';
+import { logAudit } from '../middleware/auditLog';
 
 const prisma = new PrismaClient();
 
@@ -15,7 +16,7 @@ const DEMO_REPORTS: any[] = [
     prescription: 'Cetirizine 10mg once daily for 3 days',
     observations: 'BP: 120/80, SpO2: 99%, Pulse: 72',
     isConfidential: true,
-    status: 'AUTHORIZED',
+    status: ReportStatus.DRAFT,
     createdAt: new Date(),
     patient: { id: 'user-patient-1', firstName: 'Kavitha', lastName: 'Reddy', email: 'patient1@healthcamp.com' },
     doctor: { id: 'user-doctor-1', firstName: 'Priya', lastName: 'Sharma' },
@@ -79,6 +80,10 @@ export const getReportById = async (req: Request, res: Response, next: NextFunct
     const isTreatingDoctor = report.doctorId === user.userId;
     const isAdmin = user.role?.toUpperCase() === 'ADMIN';
 
+    if (user.role === Role.PATIENT && (report.isConfidential || report.status !== ReportStatus.PUBLISHED)) {
+      throw new AppError('Medical report not found', 404, 'NOT_FOUND');
+    }
+
     if (!isOwner && !isTreatingDoctor && !isAdmin) {
       throw new AppError('You do not have permission to view this medical report', 403);
     }
@@ -122,6 +127,7 @@ export const createReport = async (req: Request, res: Response, next: NextFuncti
           observations: observations || null,
           referral: referral || null,
           isConfidential: isConfidential || false,
+          status: ReportStatus.DRAFT,
         },
         include: {
           patient: {
@@ -135,6 +141,15 @@ export const createReport = async (req: Request, res: Response, next: NextFuncti
           },
         },
       });
+      await logAudit(
+        doctorUserId,
+        AuditAction.CREATE,
+        'MEDICAL_REPORT',
+        report.id,
+        { status: ReportStatus.DRAFT, isConfidential: report.isConfidential },
+        req.ip,
+        req.get('user-agent'),
+      );
     } catch (dbErr) {
       if (isDbConnectionError(dbErr)) {
         report = {
@@ -170,6 +185,86 @@ export const createReport = async (req: Request, res: Response, next: NextFuncti
 };
 
 /**
+ * PATCH /api/v1/reports/:id/publish
+ * Finalize a doctor's draft so it can be shared with its patient.
+ */
+export const publishReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const doctorId = req.user?.userId;
+    if (!doctorId) {
+      throw new AppError('Unauthorized', 401);
+    }
+
+    const published = await prisma.$transaction(async (transaction) => {
+      const report = await transaction.medicalReport.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, doctorId: true, status: true, isConfidential: true },
+      });
+
+      if (!report) {
+        throw new AppError('Medical report not found', 404, 'NOT_FOUND');
+      }
+      if (report.doctorId !== doctorId) {
+        throw new AppError('You can only finalize reports you authored', 403, 'FORBIDDEN');
+      }
+      if (report.status !== ReportStatus.DRAFT) {
+        throw new AppError('Only draft reports can be finalized', 409, 'REPORT_NOT_DRAFT');
+      }
+
+      const result = await transaction.medicalReport.updateMany({
+        where: { id: report.id, doctorId, status: ReportStatus.DRAFT },
+        data: { status: ReportStatus.PUBLISHED },
+      });
+      if (result.count !== 1) {
+        throw new AppError('This report has already been finalized', 409, 'REPORT_NOT_DRAFT');
+      }
+
+      const updatedReport = await transaction.medicalReport.findUniqueOrThrow({
+        where: { id: report.id },
+        include: {
+          patient: { select: { id: true, firstName: true, lastName: true } },
+          doctor: { select: { id: true, firstName: true, lastName: true } },
+          camp: { select: { id: true, name: true } },
+        },
+      });
+
+      if (!updatedReport.isConfidential) {
+        await transaction.notification.create({
+          data: {
+            userId: updatedReport.patientId,
+            title: 'New medical report',
+            message: `A medical report from ${updatedReport.camp.name} is available in your health timeline.`,
+            type: 'INFO',
+          },
+        });
+      }
+
+      return updatedReport;
+    });
+
+    await logAudit(
+      doctorId,
+      AuditAction.UPDATE,
+      'MEDICAL_REPORT',
+      published.id,
+      { status: ReportStatus.PUBLISHED, isConfidential: published.isConfidential },
+      req.ip,
+      req.get('user-agent'),
+    );
+
+    res.json({
+      success: true,
+      message: published.isConfidential
+        ? 'Confidential medical report finalized'
+        : 'Medical report finalized and shared with the patient',
+      data: published,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/reports/patient/:id
  * Retrieve all medical reports for a patient
  */
@@ -189,11 +284,14 @@ export const getReportsByPatientId = async (req: Request, res: Response, next: N
 
     let reports: any[] = [];
     try {
-      const where: Record<string, string> = { patientId: id };
+      const where: Record<string, unknown> = { patientId: id };
       // A doctor may access only reports they authored. Broader patient access
       // must happen through an explicit, auditable share-pass workflow.
       if (user.role === Role.DOCTOR) {
         where.doctorId = user.userId;
+      } else if (user.role === Role.PATIENT) {
+        where.isConfidential = false;
+        where.status = ReportStatus.PUBLISHED;
       }
 
       reports = await prisma.medicalReport.findMany({
@@ -250,6 +348,8 @@ export const getAllReports = async (req: Request, res: Response, next: NextFunct
       const where: Record<string, any> = {};
       if (user.role === Role.PATIENT) {
         where.patientId = user.userId;
+        where.isConfidential = false;
+        where.status = ReportStatus.PUBLISHED;
       } else if (user.role === Role.DOCTOR) {
         where.doctorId = user.userId;
       }
@@ -334,6 +434,10 @@ export const getPrintableReport = async (req: Request, res: Response, next: Next
     const isOwner = report.patientId === user?.userId;
     const isTreatingDoctor = report.doctorId === user?.userId;
     const isAdmin = user?.role === Role.ADMIN;
+
+    if (user?.role === Role.PATIENT && (report.isConfidential || report.status !== ReportStatus.PUBLISHED)) {
+      throw new AppError('Medical report not found', 404, 'NOT_FOUND');
+    }
 
     if (!isOwner && !isTreatingDoctor && !isAdmin) {
       throw new AppError('Unauthorized', 403);

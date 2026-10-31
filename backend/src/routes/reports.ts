@@ -5,6 +5,7 @@ import {
   getReportsByPatientId,
   getPrintableReport,
   getAllReports,
+  publishReport,
 } from '../controllers/reportController';
 import {
   reportReaderUpload,
@@ -12,6 +13,8 @@ import {
   confirmAndLinkExtractedReport,
 } from '../controllers/reportReaderController';
 import { authenticate, authorize } from '../middleware/auth';
+import { validateZod } from '../middleware/zodValidate';
+import { createMedicalReportSchema } from '../utils/validationSchemas';
 
 const router = Router();
 
@@ -31,10 +34,10 @@ router.post(
 );
 
 router.get('/', authorize('PATIENT', 'DOCTOR', 'ADMIN'), getAllReports);
-router.post('/', authorize('DOCTOR'), createReport);
+router.post('/', authorize('DOCTOR'), validateZod(createMedicalReportSchema), createReport);
+router.patch('/:id/publish', authorize('DOCTOR'), publishReport);
 router.get('/patient/:id', authorize('PATIENT', 'DOCTOR', 'ADMIN'), getReportsByPatientId);
 router.get('/print/:id', getPrintableReport);
 router.get('/:id', getReportById);
 
 export default router;
-

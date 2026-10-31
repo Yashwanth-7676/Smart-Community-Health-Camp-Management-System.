@@ -19,6 +19,8 @@
     "test:upgrade11": "tsx tests/verifyUpgrade11.ts",
     "test:upgrade10": "tsx tests/verifyUpgrade10.ts",
     "test:upgrade9": "tsx tests/verifyUpgrade9.ts",
+    "test:education": "tsx tests/verifyEducationApi.ts",
+    "test:patient-timeline": "tsx tests/verifyPatientTimeline.ts",
     "test:workflows": "tsx tests/verifyAllWorkflows.ts"
   },
   "dependencies": {

@@ -75,6 +75,32 @@ enum ReportStatus {
   REVOKED
 }
 
+enum EducationContentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum EducationFormat {
+  ARTICLE
+  VIDEO
+}
+
+enum EducationCategory {
+  NUTRITION
+  HYGIENE
+  PREVENTIVE_CARE
+  GENERAL_AWARENESS
+  MATERNAL_CHILD_HEALTH
+  PHYSICAL_ACTIVITY
+  MENTAL_WELLNESS
+  VACCINATION
+  SEASONAL_HEALTH
+  HEALTHY_LIFESTYLE
+}
+
 enum ConsentType {
   TREATMENT
   DATA_SHARING
@@ -110,74 +136,79 @@ enum MedicineCategory {
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  email                 String                 @unique
-  password              String
-  role                  Role                   @default(PATIENT)
-  firstName             String
-  lastName              String
-  phone                 String?
-  avatar                String?
-  isActive              Boolean                @default(true)
-  lastLoginAt           DateTime?
-  passwordResetToken    String?
-  passwordResetExpires  DateTime?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  password             String
+  role                 Role      @default(PATIENT)
+  firstName            String
+  lastName             String
+  phone                String?
+  avatar               String?
+  isActive             Boolean   @default(true)
+  lastLoginAt          DateTime?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   // Relations
-  patientProfile         PatientProfile?
-  doctorProfile          DoctorProfile?
-  volunteerProfile       VolunteerProfile?
-  appointmentsAsPatient  Appointment[]          @relation("PatientAppointments")
-  appointmentsAsDoctor   Appointment[]          @relation("DoctorAppointments")
-  medicalReportsAsPatient MedicalReport[]       @relation("PatientReports")
-  medicalReportsAsDoctor  MedicalReport[]       @relation("DoctorReports")
-  referralsAsPatient     Referral[]             @relation("PatientReferrals")
-  referralsAsDoctor      Referral[]             @relation("DoctorReferrals")
-  notifications          Notification[]
-  followUpsAsPatient     FollowUp[]             @relation("PatientFollowUps")
-  followUpsAsDoctor      FollowUp[]             @relation("DoctorFollowUps")
-  createdCamps           Camp[]
-  consentRecords         ConsentRecord[]
-  auditLogs              AuditLog[]
-  staffAssignments       StaffAssignment[]
-  inventoryTransactions  InventoryTransaction[]
-  passwordResetTokens    PasswordResetToken[]
+  patientProfile                PatientProfile?
+  doctorProfile                 DoctorProfile?
+  volunteerProfile              VolunteerProfile?
+  appointmentsAsPatient         Appointment[]          @relation("PatientAppointments")
+  appointmentsAsDoctor          Appointment[]          @relation("DoctorAppointments")
+  medicalReportsAsPatient       MedicalReport[]        @relation("PatientReports")
+  medicalReportsAsDoctor        MedicalReport[]        @relation("DoctorReports")
+  referralsAsPatient            Referral[]             @relation("PatientReferrals")
+  referralsAsDoctor             Referral[]             @relation("DoctorReferrals")
+  notifications                 Notification[]
+  followUpsAsPatient            FollowUp[]             @relation("PatientFollowUps")
+  followUpsAsDoctor             FollowUp[]             @relation("DoctorFollowUps")
+  createdCamps                  Camp[]
+  consentRecords                ConsentRecord[]
+  auditLogs                     AuditLog[]
+  staffAssignments              StaffAssignment[]
+  inventoryTransactions         InventoryTransaction[]
+  passwordResetTokens           PasswordResetToken[]
+  authoredEducationResources    EducationResource[]    @relation("EducationAuthor")
+  reviewedEducationResources    EducationResource[]    @relation("EducationReviewer")
+  authoredEducationTranslations EducationTranslation[] @relation("EducationTranslationAuthor")
+  reviewedEducationTranslations EducationTranslation[] @relation("EducationTranslationReviewer")
+  educationProgress             EducationProgress[]
 
   @@index([role])
   @@map("users")
 }
 
 model Camp {
-  id               String            @id @default(cuid())
-  name             String
-  location         String
-  address          String
-  latitude         Float?
-  longitude        Float?
-  startDate        DateTime
-  endDate          DateTime
-  capacity         Int
-  registered       Int               @default(0)
-  status           CampStatus        @default(UPCOMING)
-  services         String[]
-  description      String?
-  createdById      String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id          String     @id @default(cuid())
+  name        String
+  location    String
+  address     String
+  latitude    Float?
+  longitude   Float?
+  startDate   DateTime
+  endDate     DateTime
+  capacity    Int
+  registered  Int        @default(0)
+  status      CampStatus @default(UPCOMING)
+  services    String[]
+  description String?
+  createdById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   // Relations
-  createdBy        User              @relation(fields: [createdById], references: [id])
-  appointments     Appointment[]
-  inventory        Inventory[]
-  medicalReports   MedicalReport[]
-  referrals        Referral[]
-  followUps        FollowUp[]
-  doctorProfiles   DoctorProfile[]   @relation("DoctorCamps")
+  createdBy         User               @relation(fields: [createdById], references: [id])
+  appointments      Appointment[]
+  inventory         Inventory[]
+  medicalReports    MedicalReport[]
+  referrals         Referral[]
+  followUps         FollowUp[]
+  doctorProfiles    DoctorProfile[]    @relation("DoctorCamps")
   volunteerProfiles VolunteerProfile[] @relation("VolunteerCamp")
-  campServices     CampService[]
-  staffAssignments StaffAssignment[]
+  campServices      CampService[]
+  staffAssignments  StaffAssignment[]
 
   @@index([status, startDate])
   @@index([location])
@@ -185,25 +216,25 @@ model Camp {
 }
 
 model Appointment {
-  id           String            @id @default(cuid())
-  patientId    String
-  campId       String
-  doctorId     String?
-  date         DateTime
-  timeSlot     String
-  status       AppointmentStatus @default(PENDING)
-  queueToken   String?
-  notes        String?
-  checkedInAt  DateTime?
-  qrCode       String?
-  noShow       Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  patientId   String
+  campId      String
+  doctorId    String?
+  date        DateTime
+  timeSlot    String
+  status      AppointmentStatus @default(PENDING)
+  queueToken  String?
+  notes       String?
+  checkedInAt DateTime?
+  qrCode      String?
+  noShow      Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   // Relations
-  patient      User              @relation("PatientAppointments", fields: [patientId], references: [id])
-  camp         Camp              @relation(fields: [campId], references: [id])
-  doctor       User?             @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient       User        @relation("PatientAppointments", fields: [patientId], references: [id])
+  camp          Camp        @relation(fields: [campId], references: [id])
+  doctor        User?       @relation("DoctorAppointments", fields: [doctorId], references: [id])
   queueTokenRef QueueToken?
 
   @@unique([patientId, campId, date])
@@ -227,7 +258,7 @@ model PatientProfile {
   updatedAt        DateTime    @updatedAt
 
   // Relations
-  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("patient_profiles")
 }
@@ -242,30 +273,30 @@ model DoctorProfile {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedCamps  Camp[]   @relation("DoctorCamps")
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCamps Camp[] @relation("DoctorCamps")
 
   @@map("doctor_profiles")
 }
 
 model VolunteerProfile {
-  id             String    @id @default(cuid())
-  userId         String    @unique
+  id             String   @id @default(cuid())
+  userId         String   @unique
   skills         String[]
   assignedCampId String?
   attendance     Json[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedCamp   Camp?     @relation("VolunteerCamp", fields: [assignedCampId], references: [id])
+  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCamp Camp? @relation("VolunteerCamp", fields: [assignedCampId], references: [id])
 
   @@map("volunteer_profiles")
 }
 
 model MedicalReport {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   patientId      String
   doctorId       String
   campId         String
@@ -273,17 +304,17 @@ model MedicalReport {
   prescription   String?
   observations   String?
   referral       String?
-  isConfidential Boolean       @default(false)
-  status         ReportStatus  @default(DRAFT)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  isConfidential Boolean      @default(false)
+  status         ReportStatus @default(DRAFT)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   // Relations
-  patient        User          @relation("PatientReports", fields: [patientId], references: [id])
-  doctor         User          @relation("DoctorReports", fields: [doctorId], references: [id])
-  camp           Camp          @relation(fields: [campId], references: [id])
-  vitalSigns     VitalSign[]
-  referrals      Referral[]
+  patient    User        @relation("PatientReports", fields: [patientId], references: [id])
+  doctor     User        @relation("DoctorReports", fields: [doctorId], references: [id])
+  camp       Camp        @relation(fields: [campId], references: [id])
+  vitalSigns VitalSign[]
+  referrals  Referral[]
 
   @@index([patientId])
   @@index([campId])
@@ -292,26 +323,26 @@ model MedicalReport {
 }
 
 model VitalSign {
-  id                    String        @id @default(cuid())
-  reportId              String
-  bloodPressureSystolic Int?
+  id                     String   @id @default(cuid())
+  reportId               String
+  bloodPressureSystolic  Int?
   bloodPressureDiastolic Int?
-  heartRate             Int?
-  temperature           Float?
-  weight                Float?
-  height                Float?
-  bloodSugar            Float?
-  oxygenSaturation      Float?
-  notes                 String?
-  createdAt             DateTime      @default(now())
+  heartRate              Int?
+  temperature            Float?
+  weight                 Float?
+  height                 Float?
+  bloodSugar             Float?
+  oxygenSaturation       Float?
+  notes                  String?
+  createdAt              DateTime @default(now())
 
-  report                MedicalReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  report MedicalReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@map("vital_signs")
 }
 
 model Referral {
-  id           String         @id @default(cuid())
+  id           String   @id @default(cuid())
   patientId    String
   doctorId     String
   campId       String
@@ -319,39 +350,39 @@ model Referral {
   hospitalName String
   department   String
   reason       String
-  urgency      String         @default("ROUTINE")
-  status       String         @default("PENDING")
+  urgency      String   @default("ROUTINE")
+  status       String   @default("PENDING")
   notes        String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  patient      User           @relation("PatientReferrals", fields: [patientId], references: [id])
-  doctor       User           @relation("DoctorReferrals", fields: [doctorId], references: [id])
-  camp         Camp           @relation(fields: [campId], references: [id])
-  report       MedicalReport? @relation(fields: [reportId], references: [id])
+  patient User           @relation("PatientReferrals", fields: [patientId], references: [id])
+  doctor  User           @relation("DoctorReferrals", fields: [doctorId], references: [id])
+  camp    Camp           @relation(fields: [campId], references: [id])
+  report  MedicalReport? @relation(fields: [reportId], references: [id])
 
   @@map("referrals")
 }
 
 model Inventory {
-  id                String                 @id @default(cuid())
+  id                String           @id @default(cuid())
   campId            String
   medicineName      String
   genericName       String?
   quantity          Int
   unit              String
   expiryDate        DateTime?
-  lowStockThreshold Int                    @default(10)
+  lowStockThreshold Int              @default(10)
   supplier          String?
   batchNumber       String?
-  category          MedicineCategory       @default(TABLET)
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
+  category          MedicineCategory @default(TABLET)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   // Relations
-  camp              Camp                   @relation(fields: [campId], references: [id])
-  batches           MedicineBatch[]
-  transactions      InventoryTransaction[]
+  camp         Camp                   @relation(fields: [campId], references: [id])
+  batches      MedicineBatch[]
+  transactions InventoryTransaction[]
 
   @@map("inventory")
 }
@@ -367,7 +398,7 @@ model MedicineBatch {
   notes        String?
   createdAt    DateTime  @default(now())
 
-  inventory    Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@map("medicine_batches")
 }
@@ -383,8 +414,8 @@ model InventoryTransaction {
   reason        String?
   createdAt     DateTime        @default(now())
 
-  inventory     Inventory       @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  performedBy   User?           @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  performedBy User?     @relation(fields: [performedById], references: [id], onDelete: SetNull)
 
   @@map("inventory_transactions")
 }
@@ -399,7 +430,7 @@ model Notification {
   createdAt DateTime         @default(now())
 
   // Relations
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -416,9 +447,9 @@ model FollowUp {
   updatedAt     DateTime       @updatedAt
 
   // Relations
-  patient       User           @relation("PatientFollowUps", fields: [patientId], references: [id])
-  doctor        User           @relation("DoctorFollowUps", fields: [doctorId], references: [id])
-  camp          Camp           @relation(fields: [campId], references: [id])
+  patient User @relation("PatientFollowUps", fields: [patientId], references: [id])
+  doctor  User @relation("DoctorFollowUps", fields: [doctorId], references: [id])
+  camp    Camp @relation(fields: [campId], references: [id])
 
   @@map("follow_ups")
 }
@@ -435,7 +466,7 @@ model QueueToken {
   createdAt            DateTime    @default(now())
 
   // Relations
-  appointment          Appointment @relation(fields: [appointmentId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
 
   @@map("queue_tokens")
 }
@@ -461,7 +492,7 @@ model ConsentRecord {
   userAgent   String?
   createdAt   DateTime    @default(now())
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("consent_records")
 }
@@ -477,7 +508,7 @@ model AuditLog {
   userAgent String?
   createdAt DateTime    @default(now())
 
-  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([action, entity])
   @@index([createdAt])
@@ -492,7 +523,7 @@ model PasswordResetToken {
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
 }
@@ -507,7 +538,7 @@ model CampService {
   currentCount Int      @default(0)
   createdAt    DateTime @default(now())
 
-  camp         Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  camp Camp @relation(fields: [campId], references: [id], onDelete: Cascade)
 
   @@map("camp_services")
 }
@@ -521,9 +552,84 @@ model StaffAssignment {
   confirmedAt DateTime?
   notes       String?
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  camp        Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  camp Camp @relation(fields: [campId], references: [id], onDelete: Cascade)
 
   @@unique([userId, campId])
   @@map("staff_assignments")
+}
+
+model EducationResource {
+  id          String                 @id @default(cuid())
+  slug        String                 @unique
+  category    EducationCategory
+  format      EducationFormat        @default(ARTICLE)
+  status      EducationContentStatus @default(DRAFT)
+  authorId    String
+  reviewerId  String?
+  reviewedAt  DateTime?
+  publishedAt DateTime?
+  version     Int                    @default(1)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  author       User                   @relation("EducationAuthor", fields: [authorId], references: [id])
+  reviewer     User?                  @relation("EducationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  translations EducationTranslation[]
+  progress     EducationProgress[]
+
+  @@index([status, category, publishedAt])
+  @@index([authorId, updatedAt])
+  @@map("education_resources")
+}
+
+model EducationTranslation {
+  id                  String                 @id @default(cuid())
+  resourceId          String
+  language            String
+  title               String
+  description         String
+  body                String
+  imageUrl            String?
+  videoUrl            String?
+  readingMinutes      Int                    @default(1)
+  sourceReferences    String[]
+  isMachineTranslated Boolean                @default(false)
+  status              EducationContentStatus @default(DRAFT)
+  authorId            String
+  reviewerId          String?
+  reviewedAt          DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  resource EducationResource   @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  author   User                @relation("EducationTranslationAuthor", fields: [authorId], references: [id])
+  reviewer User?               @relation("EducationTranslationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  progress EducationProgress[]
+
+  @@unique([resourceId, language])
+  @@index([language, status, title])
+  @@map("education_translations")
+}
+
+model EducationProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  resourceId      String
+  translationId   String
+  progressPercent Int       @default(0)
+  isBookmarked    Boolean   @default(false)
+  lastReadAt      DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource    EducationResource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  translation EducationTranslation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, translationId])
+  @@index([userId, isBookmarked, updatedAt])
+  @@index([userId, completedAt])
+  @@map("education_progress")
 }

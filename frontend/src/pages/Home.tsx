@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useEffect, lazy } from 'react';
+import React, { Suspense, useRef, useEffect, useState, lazy } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -84,10 +84,16 @@ const SERVICES = [
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function Home() {
+  const [shouldLoad3D, setShouldLoad3D] = useState(false);
   const { data: campsData } = useQuery({
     queryKey: ['upcoming-camps'],
     queryFn: () => apiClient.get('/camps?status=upcoming&limit=3').then((r) => r.data.data),
   });
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setShouldLoad3D(true), 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const camps = campsData?.camps ?? [];
 
@@ -185,16 +191,23 @@ export default function Home() {
                 Interactive 3D Clinic
               </div>
 
-              <Suspense
-                fallback={
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-slate-900/40">
-                    <div className="w-10 h-10 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-cyan-300 font-medium">Initializing 3D Viewport...</span>
-                  </div>
-                }
-              >
-                <HeroScene />
-              </Suspense>
+              {shouldLoad3D ? (
+                <Suspense
+                  fallback={
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-slate-900/40">
+                      <div className="w-10 h-10 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs text-cyan-300 font-medium">Initializing 3D Viewport...</span>
+                    </div>
+                  }
+                >
+                  <HeroScene />
+                </Suspense>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-slate-900/40">
+                  <div className="w-10 h-10 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-cyan-300 font-medium">Initializing 3D Viewport...</span>
+                </div>
+              )}
 
               {/* 3D Hint caption */}
               <div className="absolute bottom-3 right-4 z-20 text-[10px] text-slate-400/80 bg-slate-900/60 px-2 py-0.5 rounded backdrop-blur">
@@ -221,9 +234,13 @@ export default function Home() {
             </span>
           </div>
           <div className="w-48 sm:w-80 h-10 hidden sm:block">
-            <Suspense fallback={<div className="h-full bg-cyan-900/20 rounded animate-pulse" />}>
-              <HeartbeatLine height={40} />
-            </Suspense>
+            {shouldLoad3D ? (
+              <Suspense fallback={<div className="h-full bg-cyan-900/20 rounded animate-pulse" />}>
+                <HeartbeatLine height={40} />
+              </Suspense>
+            ) : (
+              <div className="h-full bg-cyan-900/20 rounded animate-pulse" />
+            )}
           </div>
           <div className="text-xs text-slate-400 font-medium">
             Active Camps in Bengaluru & Rural Karnataka

@@ -45,7 +45,7 @@ export const CheckupForm: React.FC<CheckupFormProps> = ({
     try {
       setIsSubmitting(true);
       await apiClient.post('/reports', data);
-      toast.success(`Medical checkup recorded for ${patientName}`);
+      toast.success(`Clinical draft saved for ${patientName}. Review it before sharing.`);
       if (onSuccess) onSuccess();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to submit medical report');
@@ -60,6 +60,9 @@ export const CheckupForm: React.FC<CheckupFormProps> = ({
         <span>Patient: <strong>{patientName}</strong></span>
         <span>Camp ID: {campId.slice(0, 8)}...</span>
       </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        This record is saved as a draft. The patient will not see it until you review and finalize it.
+      </p>
 
       <div>
         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -86,12 +89,12 @@ export const CheckupForm: React.FC<CheckupFormProps> = ({
 
       <div>
         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-          Prescription & Dosage
+          Prescription Details
         </label>
         <textarea
           {...register('prescription')}
           rows={3}
-          placeholder="1. Tab Paracetamol 500mg SOS&#10;2. Tab Metformin 500mg 1-0-1 after food"
+          placeholder="Medicine, strength, dose, frequency, duration, and instructions"
           className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
       </div>
@@ -139,4 +142,3 @@ export const CheckupForm: React.FC<CheckupFormProps> = ({
 };
 
 export default CheckupForm;
-

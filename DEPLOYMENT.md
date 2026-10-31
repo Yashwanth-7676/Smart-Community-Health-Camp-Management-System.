@@ -53,16 +53,17 @@ VITE_API_URL=https://your-backend-api.onrender.com/api/v1
 
 ---
 
-## 🗄️ Database Setup & Migrations
+## 🗄️ Database Setup & Schema
 
 ### Using Managed PostgreSQL (Neon, Supabase, or Render)
 1. Create a PostgreSQL database on [Neon.tech](https://neon.tech), [Supabase.com](https://supabase.com), or [Render.com](https://render.com).
 2. Copy the pooled or direct connection string into your backend `DATABASE_URL`.
-3. Run migrations on the production database:
+3. This repository does not have a baseline Prisma migration history. After backing up an existing database, synchronize the current schema:
    ```bash
    cd backend
-   npx prisma migrate deploy
+   npx prisma db push
    ```
+   Use the same command for a new empty database and existing installations. Do not use `prisma migrate deploy` until a complete baseline migration history has been established.
 4. (Optional) Populate fictional demonstration records for initial staging:
    ```bash
    npm run seed
@@ -107,7 +108,8 @@ The repository contains a turnkey `render.yaml` blueprint:
 3. Render automatically creates:
    - A managed PostgreSQL database (`healthcamp-db`)
    - A Node.js web service (`healthcamp-api`)
-   - Automatic execution of `npx prisma migrate deploy` and `node dist/src/server.js`
+   - The backend web service and managed PostgreSQL database
+   - No schema synchronization is run automatically; apply the schema using the database setup step above before using the service
 4. Under the Web Service settings, update `CLIENT_URL` to your Vercel or Netlify frontend URL.
 
 ---
@@ -168,4 +170,3 @@ Expected output: **47 OF 47 TESTS PASSED (0 FAILED)**.
 3. **Database Connection Timeout (`P1001`)**:
    - Verify your database host allows external connections (IP allowlist `0.0.0.0/0` on Supabase/Neon).
    - Ensure `sslmode=require` is present in the connection string.
-

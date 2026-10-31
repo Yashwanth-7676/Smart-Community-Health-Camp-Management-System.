@@ -7,6 +7,7 @@ import {
   getPatientAppointments,
   getPatientReports,
   getPatientJourneyStats,
+  getPatientTimeline,
 } from '../controllers/patientController';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -15,6 +16,7 @@ const router = Router();
 router.get('/', authenticate, authorize('ADMIN', 'DOCTOR'), getPatients);
 router.post('/profile', authenticate, authorize('PATIENT'), upsertPatientProfile);
 router.get('/journey-stats', authenticate, getPatientJourneyStats);
+router.get('/timeline', authenticate, authorize('PATIENT'), getPatientTimeline);
 router.get('/:id', authenticate, authorize('PATIENT', 'DOCTOR', 'ADMIN'), getPatientById);
 router.put('/:id', authenticate, authorize('PATIENT', 'ADMIN'), updatePatient);
 router.get('/:id/appointments', authenticate, authorize('PATIENT', 'DOCTOR', 'ADMIN'), getPatientAppointments);

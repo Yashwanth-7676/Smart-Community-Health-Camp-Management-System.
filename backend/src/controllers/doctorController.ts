@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient, AppointmentStatus } from '@prisma/client';
+import { AuditAction, PrismaClient, AppointmentStatus, ReportStatus } from '@prisma/client';
 import { AppError } from '../middleware/errorHandler';
 import { getPagination, buildPaginationMeta } from '../utils/helpers';
 import { CreateReportDto, ListQueryParams } from '../types';
 import { isDbConnectionError, DEMO_APPOINTMENTS, DEMO_REPORTS, DEMO_FOLLOW_UPS } from '../utils/mockStore';
+import { logAudit } from '../middleware/auditLog';
 
 const prisma = new PrismaClient();
 
@@ -181,6 +182,7 @@ export const createMedicalReport = async (req: Request, res: Response, next: Nex
         observations,
         referral,
         isConfidential: isConfidential || false,
+        status: ReportStatus.DRAFT,
       },
       include: {
         patient: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -189,21 +191,19 @@ export const createMedicalReport = async (req: Request, res: Response, next: Nex
       },
     });
 
-    // Notify patient about new report (unless confidential)
-    if (!isConfidential) {
-      await prisma.notification.create({
-        data: {
-          userId: patientId,
-          title: 'New Medical Report',
-          message: `Your medical report from ${camp.name} has been added by Dr. ${req.user!.firstName} ${req.user!.lastName}`,
-          type: 'INFO',
-        },
-      });
-    }
+    await logAudit(
+      doctorId,
+      AuditAction.CREATE,
+      'MEDICAL_REPORT',
+      report.id,
+      { status: ReportStatus.DRAFT, isConfidential: report.isConfidential },
+      req.ip,
+      req.get('user-agent'),
+    );
 
     res.status(201).json({
       success: true,
-      message: 'Medical report created successfully',
+      message: 'Medical report saved as a draft for clinician review',
       data: report,
     });
   } catch (error) {

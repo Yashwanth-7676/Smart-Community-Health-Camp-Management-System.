@@ -26,6 +26,8 @@ const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
 
 // Lazy Loaded Portal Pages
 const PatientDashboard = lazy(() => import('@/pages/patient/PatientDashboard'));
+const PatientHealthTimeline = lazy(() => import('@/pages/patient/PatientHealthTimeline'));
+const EducationContentAdmin = lazy(() => import('@/pages/admin/EducationContentAdmin'));
 const AppointmentBooking = lazy(() => import('@/pages/patient/AppointmentBooking'));
 const PatientProfile = lazy(() => import('@/pages/patient/PatientProfile'));
 const FollowUpPage = lazy(() => import('@/pages/patient/FollowUpPage'));
@@ -99,6 +101,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['patient']}>
                   <PatientDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patient/timeline"
+              element={
+                <ProtectedRoute allowedRoles={['patient']}>
+                  <PatientHealthTimeline />
                 </ProtectedRoute>
               }
             />
@@ -193,6 +203,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/education"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'doctor', 'organizer']}>
+                  <EducationContentAdmin />
                 </ProtectedRoute>
               }
             />

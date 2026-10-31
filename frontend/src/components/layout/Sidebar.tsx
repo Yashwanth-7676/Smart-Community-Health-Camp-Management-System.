@@ -39,6 +39,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Command Center', path: '/command-center', icon: Radio },
     { label: 'Patient Queue', path: '/doctor/patients', icon: Users },
     { label: 'Medical Reports', path: '/doctor/reports', icon: FileText },
+    { label: 'Education Review', path: '/admin/education', icon: Sparkles },
     { label: 'Medicine Inventory', path: '/inventory', icon: Package },
     { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'Camp Schedule', path: '/camps', icon: Calendar },
@@ -60,6 +61,7 @@ export const Sidebar: React.FC = () => {
     { label: 'Camp Management', path: '/admin/camps', icon: Calendar },
     { label: 'User Management', path: '/admin/users', icon: Users },
     { label: 'Analytics & Trends', path: '/admin/analytics', icon: BarChart3 },
+    { label: 'Health Education', path: '/admin/education', icon: Sparkles },
     { label: 'Inventory Stock', path: '/inventory', icon: Package },
     { label: '3D Anatomy', path: '/education', icon: Sparkles },
     { label: 'All Reports', path: '/reports', icon: FileText },
@@ -121,4 +123,3 @@ export const Sidebar: React.FC = () => {
 };
 
 export default Sidebar;
-

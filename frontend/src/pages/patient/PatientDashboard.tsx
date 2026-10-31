@@ -315,6 +315,12 @@ export const PatientDashboard: React.FC = () => {
             <Sparkles className="w-5 h-5 text-cyan-400" />
             Quick Actions
           </h2>
+          <Link
+            to="/patient/timeline"
+            className="text-xs font-bold text-cyan-600 hover:underline dark:text-cyan-400"
+          >
+            View health timeline
+          </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {QUICK_ACTIONS.map(({ label, to, icon: Icon, color, iconColor }) => (

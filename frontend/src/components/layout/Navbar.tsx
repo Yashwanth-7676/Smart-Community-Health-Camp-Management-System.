@@ -94,6 +94,7 @@ export const Navbar: React.FC = () => {
   const navCoreLinks = [
     { label: t('nav.home', 'Home'), path: '/' },
     { label: t('nav.camps', 'Health Camps'), path: '/camps' },
+    { label: 'Health Academy', path: '/awareness' },
     { label: 'Camp Map', path: '/camp-map', badge: 'Live' },
   ];
 
